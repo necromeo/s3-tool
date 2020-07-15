@@ -64,42 +64,35 @@ def get_login(
 def list_keys(
     prefix: str = typer.Option("source/", help="Prefix to look for keys"),
     http_prefix: bool = typer.Option(False, help="Append HTTP URL Prefix to keys"),
+    all: bool = typer.Option(
+        False, help="USE WITH CAUTION! If True, will fetch every key in the Bucket"
+    ),
 ):
     """Lists keys according to a given prefix"""
 
     contents, _, _ = get_login()
     contar_http = os.getenv("HTTP_PREFIX") or ""
-    for obj in contents.objects.filter(Prefix=prefix):
-        # for obj in contents.objects.all():
-        if http_prefix:
-            print(f"{contar_http}{obj.key}")
-        else:
-            print(obj.key)
 
-
-@app.command()
-def list_all(
-    prefix: str = typer.Option("source/", help="Prefix to look for keys"),
-    http_prefix: bool = typer.Option(False, help="Append HTTP URL Prefix to keys"),
-):
-    """USE WITH CAUTION! Lists all keys in the bucket."""
-
-    contents, _, _ = get_login()
-    contar_http = os.getenv("HTTP_PREFIX") or ""
-    for obj in contents.objects.all():
-        if http_prefix:
-            print(f"{contar_http}{obj.key}")
-        else:
-            print(obj.key)
+    if all is False:
+        for obj in contents.objects.filter(Prefix=prefix):
+            if http_prefix:
+                typer.echo(f"{contar_http}{obj.key}")
+            else:
+                typer.echo(obj.key)
+    else:
+        for obj in contents.objects.all():
+            if http_prefix:
+                typer.echo(f"{contar_http}{obj.key}")
+            else:
+                typer.echo(obj.key)
 
 
 def permission_changer(f):
     # Could check the permissions to know if to change them or not
     try:
-        # print(f"Cambiando permisos de: {f.key}")
         f.Acl().put(ACL="public-read")
     except Exception as e:
-        print(f"Error -> {e}")
+        typer.echo(f"Error -> {e}", err=True)
 
 
 def file_gatherer(video_ids: str, changer_threads: int):
@@ -107,7 +100,6 @@ def file_gatherer(video_ids: str, changer_threads: int):
     all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
-        # executor.map(permission_changer, all_files)
         results = list(
             tqdm(
                 executor.map(permission_changer, all_files),
@@ -134,7 +126,7 @@ def change_permissions(
     """Takes any number of keys and changes their permissions to public-read"""
     try:
         if not args:
-            print("You must specify at least one S3 Key")
+            typer.echo("You must specify at least one S3 Key")
         id_list = [str(i) for i in args]
         with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
             futures = [
@@ -144,7 +136,7 @@ def change_permissions(
             for f in futures:
                 f.result()
     except Exception as e:
-        print(e)
+        typer.echo(e)
 
 
 def _deleter(k: str, prompt):
@@ -162,7 +154,6 @@ def _deleter(k: str, prompt):
     typer.echo(message + deleted)
 
 
-# TODO Check if it's apt using Option here. Could add a prompt as well!
 @app.command()
 def delete_key(
     files: List[str],
@@ -187,7 +178,7 @@ def delete_key(
         return e
 
 
-def _upload_file(file: str, upload_path: str):
+def _upload_file(file: str, upload_path: str, upload_permission: str):
     contents, _, _ = get_login()
 
     VIDEO_FILE = file
@@ -203,11 +194,10 @@ def _upload_file(file: str, upload_path: str):
 
     mimetype, _ = mimetypes.guess_type(VIDEO_FILE)
 
+    extra_args = {"ContentType": mimetype, "ACL": upload_permission}
+
     contents.upload_file(
-        Filename=VIDEO_FILE,
-        Key=KEY,
-        Callback=upload_progress,
-        ExtraArgs={"ContentType": mimetype, "ACL": "public-read"},
+        Filename=VIDEO_FILE, Key=KEY, Callback=upload_progress, ExtraArgs=extra_args,
     )
 
     progbar.close()
@@ -217,6 +207,10 @@ def _upload_file(file: str, upload_path: str):
 def upload(
     files: List[str],
     upload_path: str,
+    permissions: str = typer.Option(
+        "public-read",
+        help="Sets the permission for the uploaded file. Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'",
+    ),
     worker_threads: int = typer.Option(
         3, help="Amount of threads used to upload in parallel"
     ),
@@ -228,7 +222,9 @@ def upload(
     """
 
     executor = ThreadPoolExecutor(max_workers=worker_threads)
-    futures = [executor.submit(_upload_file, vid, upload_path) for vid in files]
+    futures = [
+        executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
+    ]
     for f in futures:
         f.result()
 
