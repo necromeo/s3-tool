@@ -44,7 +44,6 @@ $ s3-tool [OPTIONS] COMMAND [ARGS]...
 * `change-permissions`: Takes any number of keys and changes their...
 * `delete-key`: USE WITH EXTREME CAUTION! Deletes a given key...
 * `download`: Downloads a key or series of keys
-* `list-all`: USE WITH CAUTION! Lists all keys in the...
 * `list-keys`: Lists keys according to a given prefix
 * `upload`: Uploads a single file or multiple files.
 
@@ -62,6 +61,7 @@ $ s3-tool change-permissions [OPTIONS] ARGS...
 
 * `--prefix-threads INTEGER`: Sets the amount of prefixes that should be queried in parallel
 * `--changer-threads INTEGER`: Sets the amount of threads used to change permissions for a given prefix
+* `--permissions TEXT`: Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'
 * `--help`: Show this message and exit.
 
 ## `s3-tool delete-key`
@@ -96,22 +96,6 @@ $ s3-tool download [OPTIONS] FILES...
 * `--worker-threads INTEGER`: Amount of threads used to download in parallel
 * `--help`: Show this message and exit.
 
-## `s3-tool list-all`
-
-USE WITH CAUTION! Lists all keys in the bucket.
-
-**Usage**:
-
-```console
-$ s3-tool list-all [OPTIONS]
-```
-
-**Options**:
-
-* `--prefix TEXT`: Prefix to look for keys
-* `--http-prefix / --no-http-prefix`: Append HTTP URL Prefix to keys
-* `--help`: Show this message and exit.
-
 ## `s3-tool list-keys`
 
 Lists keys according to a given prefix
@@ -126,6 +110,7 @@ $ s3-tool list-keys [OPTIONS]
 
 * `--prefix TEXT`: Prefix to look for keys
 * `--http-prefix / --no-http-prefix`: Append HTTP URL Prefix to keys
+* `--all / --no-all`: USE WITH CAUTION! If True, will fetch every key in the Bucket
 * `--help`: Show this message and exit.
 
 ## `s3-tool upload`
@@ -142,5 +127,6 @@ $ s3-tool upload [OPTIONS] FILES... UPLOAD_PATH
 
 **Options**:
 
+* `--permissions TEXT`: Sets the permission for the uploaded file. Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'
 * `--worker-threads INTEGER`: Amount of threads used to upload in parallel
 * `--help`: Show this message and exit.
