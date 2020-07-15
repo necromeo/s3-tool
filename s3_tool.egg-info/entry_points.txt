@@ -1,0 +1,3 @@
+[console_scripts]
+s3-tool = s3_tool.main:app
+
