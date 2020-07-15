@@ -87,28 +87,25 @@ def list_keys(
                 typer.echo(obj.key)
 
 
-def permission_changer(f):
+def permission_changer(f, permissions: str):
     # Could check the permissions to know if to change them or not
     try:
-        f.Acl().put(ACL="public-read")
+        f.Acl().put(ACL=permissions)
     except Exception as e:
         typer.echo(f"Error -> {e}", err=True)
 
 
-def file_gatherer(video_ids: str, changer_threads: int):
+def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _ = get_login()
     all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
-        results = list(
-            tqdm(
-                executor.map(permission_changer, all_files),
-                total=len(all_files),
-                unit="files",
-                desc=str(video_ids),
-            )
-        )
-    return results
+        results = [
+            executor.submit(permission_changer, file, permissions) for file in all_files
+        ]
+
+        for res in results:
+            res.result()
 
 
 # TODO Add requested permission as parameter
@@ -122,19 +119,27 @@ def change_permissions(
         50,
         help="Sets the amount of threads used to change permissions for a given prefix",
     ),
+    permissions: str = typer.Option(
+        "public-read",
+        help="Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'",
+    ),
 ):
     """Takes any number of keys and changes their permissions to public-read"""
     try:
         if not args:
             typer.echo("You must specify at least one S3 Key")
         id_list = [str(i) for i in args]
+        progbar = tqdm(total=len(id_list), desc=permissions, unit="permission")
+
         with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
             futures = [
-                executor.submit(file_gatherer, vid_id, changer_threads)
+                executor.submit(file_gatherer, vid_id, changer_threads, permissions)
                 for vid_id in id_list
             ]
             for f in futures:
+                progbar.update()
                 f.result()
+            progbar.close()
     except Exception as e:
         typer.echo(e)
 
