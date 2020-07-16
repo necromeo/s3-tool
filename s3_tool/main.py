@@ -3,6 +3,7 @@ import typer
 import boto3
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
+from pathlib import Path
 from tqdm import tqdm
 from dotenv import load_dotenv
 
@@ -183,26 +184,26 @@ def delete_key(
         return e
 
 
-def _upload_file(file: str, upload_path: str, upload_permission: str):
+def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     contents, _, _ = get_login()
 
-    VIDEO_FILE = file
-    KEY = f"{upload_path}/{os.path.basename(file)}"
-    VIDEO_SIZE = os.path.getsize(VIDEO_FILE)
+    file_name = Path(file_path).name
+    key = f"{upload_path}/{file_name}"
+    video_size = os.path.getsize(file_path)
 
     progbar = tqdm(
-        total=VIDEO_SIZE, unit="B", unit_scale=True, unit_divisor=1024, desc=file
+        total=video_size, unit="B", unit_scale=True, unit_divisor=1024, desc=file_name
     )
 
     def upload_progress(chunk):
         progbar.update(chunk)
 
-    mimetype, _ = mimetypes.guess_type(VIDEO_FILE)
+    mimetype, _ = mimetypes.guess_type(file_path)
 
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=VIDEO_FILE, Key=KEY, Callback=upload_progress, ExtraArgs=extra_args,
+        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
     )
 
     progbar.close()
