@@ -64,6 +64,9 @@ def get_login(
 @app.command()
 def list_keys(
     prefix: str = typer.Option("source/", help="Prefix to look for keys"),
+    delimiter: str = typer.Option(
+        "", help="A delimiter is a character you use to group keys."
+    ),
     http_prefix: bool = typer.Option(False, help="Append HTTP URL Prefix to keys"),
     all: bool = typer.Option(
         False, help="USE WITH CAUTION! If True, will fetch every key in the Bucket"
@@ -75,7 +78,7 @@ def list_keys(
     contar_http = os.getenv("HTTP_PREFIX") or ""
 
     if all is False:
-        for obj in contents.objects.filter(Prefix=prefix):
+        for obj in contents.objects.filter(Prefix=prefix, Delimiter=delimiter):
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
             else:
@@ -122,7 +125,7 @@ def change_permissions(
     ),
     permissions: str = typer.Option(
         "public-read",
-        help="Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'",
+        help="Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
     ),
 ):
     """Takes any number of keys and changes their permissions to public-read"""
@@ -215,7 +218,7 @@ def upload(
     upload_path: str,
     permissions: str = typer.Option(
         "public-read",
-        help="Sets the permission for the uploaded file. Options are: 'private'|'public-read'|'public-read-write'|'authenticated-read'|'aws-exec-read'|'bucket-owner-read'|'bucket-owner-full-control'",
+        help="Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
     ),
     worker_threads: int = typer.Option(
         3, help="Amount of threads used to upload in parallel"
