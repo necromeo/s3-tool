@@ -110,6 +110,7 @@ $ s3-tool list-keys [OPTIONS]
 
 - `--prefix TEXT`: Prefix to look for keys
 - `--delimiter TEXT`: A delimiter is a character you use to group keys.
+- `--max-keys INT` : Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.
 - `--http-prefix / --no-http-prefix`: Append HTTP URL Prefix to keys
 - `--all / --no-all`: USE WITH CAUTION! If True, will fetch every key in the Bucket
 - `--help`: Show this message and exit.

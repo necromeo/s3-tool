@@ -67,6 +67,10 @@ def list_keys(
     delimiter: str = typer.Option(
         "", help="A delimiter is a character you use to group keys."
     ),
+    max_keys: int = typer.Option(
+        1000,
+        help="Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.",
+    ),
     http_prefix: bool = typer.Option(False, help="Append HTTP URL Prefix to keys"),
     all: bool = typer.Option(
         False, help="USE WITH CAUTION! If True, will fetch every key in the Bucket"
@@ -78,7 +82,9 @@ def list_keys(
     contar_http = os.getenv("HTTP_PREFIX") or ""
 
     if all is False:
-        for obj in contents.objects.filter(Prefix=prefix, Delimiter=delimiter):
+        for obj in contents.objects.filter(
+            Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
+        ):
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
             else:
