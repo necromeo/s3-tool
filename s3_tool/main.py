@@ -259,7 +259,7 @@ def _downloader(file_key, download_path):
         filename = os.path.basename(file_key)
 
         progbar = tqdm(
-            total=file.size,
+            total=file.content_length,
             unit="B",
             unit_scale=True,
             unit_divisor=1024,
