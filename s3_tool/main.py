@@ -1,6 +1,7 @@
 import os, mimetypes
+from botocore import retries
 import typer
-import boto3
+import boto3, botocore
 from concurrent.futures import ThreadPoolExecutor
 from typing import List
 from pathlib import Path
@@ -49,6 +50,8 @@ def get_login(
         endpoint_url=login_data["endpoint_url"],
         aws_access_key_id=login_data["aws_access_key_id"],
         aws_secret_access_key=login_data["aws_secret_access_key"],
+        use_ssl=True,
+        config=botocore.config.Config(retries={"total_max_attempts": 3}),
     )
 
     login_data["bucket"] = bucket()
@@ -75,16 +78,24 @@ def list_keys(
     all: bool = typer.Option(
         False, help="USE WITH CAUTION! If True, will fetch every key in the Bucket"
     ),
+    limit: int = typer.Option(0, help="Limits the amount of keys returned"),
 ):
     """Lists keys according to a given prefix"""
-
     contents, _, _ = get_login()
     contar_http = os.getenv("HTTP_PREFIX") or ""
 
-    if all is False:
+    if all is False and limit == 0:
         for obj in contents.objects.filter(
             Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
         ):
+            if http_prefix:
+                typer.echo(f"{contar_http}{obj.key}")
+            else:
+                typer.echo(obj.key)
+    elif limit > 0:
+        for obj in contents.objects.filter(
+            Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
+        ).limit(count=limit):
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
             else:

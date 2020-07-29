@@ -113,6 +113,7 @@ $ s3-tool list-keys [OPTIONS]
 - `--max-keys INT` : Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.
 - `--http-prefix / --no-http-prefix`: Append HTTP URL Prefix to keys
 - `--all / --no-all`: USE WITH CAUTION! If True, will fetch every key in the Bucket
+- `--limit INT`: "Limits the amount of keys returned. By default, there is no limit"
 - `--help`: Show this message and exit.
 
 ## `s3-tool upload`
