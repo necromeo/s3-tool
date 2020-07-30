@@ -1,5 +1,4 @@
 import os, mimetypes
-from botocore import retries
 import typer
 import boto3, botocore
 from concurrent.futures import ThreadPoolExecutor
@@ -7,6 +6,10 @@ from typing import List
 from pathlib import Path
 from tqdm import tqdm
 from dotenv import load_dotenv
+from access_types import ACLTypes
+from object_methods import ObjectMethods
+
+# TODO: create-download-list
 
 load_dotenv()
 
@@ -66,19 +69,33 @@ def get_login(
 
 @app.command()
 def list_keys(
-    prefix: str = typer.Option("source/", help="Prefix to look for keys"),
+    prefix: str = typer.Option(
+        "source/", "--prefix", "-p", help="Prefix to look for keys"
+    ),
     delimiter: str = typer.Option(
-        "", help="A delimiter is a character you use to group keys."
+        "",
+        "--delimiter",
+        "-d",
+        help="A delimiter is a character you use to group keys.",
     ),
     max_keys: int = typer.Option(
         1000,
+        " --max-keys",
+        "-mk",
         help="Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.",
     ),
-    http_prefix: bool = typer.Option(False, help="Append HTTP URL Prefix to keys"),
+    http_prefix: bool = typer.Option(
+        False, "--http-prefix", "-hp", help="Append HTTP URL Prefix to keys"
+    ),
     all: bool = typer.Option(
         False, help="USE WITH CAUTION! If True, will fetch every key in the Bucket"
     ),
-    limit: int = typer.Option(0, help="Limits the amount of keys returned"),
+    limit: int = typer.Option(
+        0, "--limit", "-l", help="Limits the amount of keys returned"
+    ),
+    key_methods: ObjectMethods = typer.Option(
+        ObjectMethods.key, "--key-methods", "-km"
+    ),
 ):
     """Lists keys according to a given prefix"""
     contents, _, _ = get_login()
@@ -90,8 +107,15 @@ def list_keys(
         ):
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
-            else:
-                typer.echo(obj.key)
+            elif key_methods == "key":
+                typer.echo(f"{obj.key}")
+            elif key_methods == "size":
+                typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
+            elif key_methods == "last_modified":
+                typer.echo(f"{obj.last_modified}")
+            elif key_methods == "owner":
+                typer.echo(f"{obj.owner}")
+
     elif limit > 0:
         for obj in contents.objects.filter(
             Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
@@ -140,9 +164,8 @@ def change_permissions(
         50,
         help="Sets the amount of threads used to change permissions for a given prefix",
     ),
-    permissions: str = typer.Option(
-        "public-read",
-        help="Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
+    permissions: ACLTypes = typer.Option(
+        ACLTypes.public_read, "--permissions", "-p", help="Changes the keys permissions"
     ),
 ):
     """Takes any number of keys and changes their permissions to public-read"""
@@ -231,8 +254,11 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
 
 @app.command()
 def upload(
-    files: List[str],
-    upload_path: str,
+    files: List[str] = typer.Argument(
+        ...,
+        help="Either a file or files, or a text file containing paths to files separated by commas (,)",
+    ),
+    upload_path: str = typer.Argument(...),
     permissions: str = typer.Option(
         "public-read",
         help="Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
@@ -246,6 +272,12 @@ def upload(
     The last argument passed will be the upload path.
     Optionally, one can choose the amount of threads that should be used.
     """
+    file_type, _ = mimetypes.guess_type(files[0])
+    if len(files) == 1 and file_type == "text/plain":
+        with open(files[0], "r") as file_paths:
+            paths = file_paths.read().strip()
+            separated_paths = paths.split(",")
+            files = [p.strip() for p in separated_paths]
 
     executor = ThreadPoolExecutor(max_workers=worker_threads)
     futures = [
@@ -298,21 +330,55 @@ def _downloader(file_key, download_path):
 
 @app.command()
 def download(
-    files: List[str],
+    files: List[str] = typer.Argument(
+        ...,
+        help="Either a file or files, or a text file containing paths to files separated by commas (,)",
+    ),
     download_path: str = typer.Option(
         None,
+        "--download-path",
+        "-dp",
         help="Sets download path. Will download in the folder where the command is executed if none is set",
     ),
-    worker_threads: int = typer.Option(
-        3, help="Amount of threads used to download in parallel"
+    threads: int = typer.Option(
+        3, "--threads", "-t", help="Amount of threads used to download in parallel"
     ),
 ):
     """Downloads a key or series of keys"""
 
-    executor = ThreadPoolExecutor(max_workers=worker_threads)
+    file_type, _ = mimetypes.guess_type(files[0])
+    if len(files) == 1 and file_type == "text/plain":
+        with open(files[0], "r") as file_paths:
+            paths = file_paths.read().strip()
+            separated_paths = paths.split(",")
+            files = [p.strip() for p in separated_paths]
+
+    executor = ThreadPoolExecutor(max_workers=threads)
     futures = [executor.submit(_downloader, vid, download_path) for vid in files]
     for f in futures:
         f.result()
+
+
+@app.command(name="create-upload-list")
+def create_upload_list(
+    files_path: str = typer.Argument(...),
+    file_extension: str = typer.Argument(...),
+    output_path: str = typer.Option(
+        os.getcwd(),
+        help="Choose an output path. Else, the file will be written on the folder where the command is executed",
+    ),
+):
+    """
+    Writes a text file of all files in a folder with a given extension that
+    can be used together with the upload command to upload multiple files
+    at once
+    """
+
+    with open(os.path.join(output_path, "upload.txt"), "w") as upload_list:
+        for i in os.scandir(files_path):
+            if Path(i).suffix == f".{file_extension}":
+                upload_list.write(f"{i.path}, ")
+    return
 
 
 if __name__ == "__main__":
