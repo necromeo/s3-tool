@@ -6,8 +6,8 @@ from typing import List
 from pathlib import Path
 from tqdm import tqdm
 from dotenv import load_dotenv
-from access_types import ACLTypes
-from object_methods import ObjectMethods
+from s3_tool.choices.access_types import ACLTypes
+from s3_tool.choices.object_methods import ObjectMethods
 
 # TODO: create-download-list
 
