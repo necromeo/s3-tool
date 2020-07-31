@@ -215,6 +215,12 @@ def delete_key(
         if not files:
             typer.echo("No files provided")
             raise typer.Abort()
+
+        for f in files:
+            if f[0] == "/":
+                typer.echo("DO NOT DELETE A KEY STARTING WITH /")
+                raise typer.Abort()
+
         keys = [f for f in files]
         with ThreadPoolExecutor(max_workers=threads) as executor:
             futures = [executor.submit(_deleter, k, prompt) for k in keys]
@@ -259,7 +265,7 @@ def upload(
     upload_from_file: str = typer.Option(
         None,
         "--upload-from-file",
-        "-uff",
+        "-ff",
         help="Upload using text file containing paths to files separated by commas (,)",
     ),
     permissions: str = typer.Option(
