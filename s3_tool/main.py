@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from s3_tool.choices.access_types import ACLTypes
 from s3_tool.choices.object_methods import ObjectMethods
 
-# TODO: create-download-list
 
 load_dotenv()
 
@@ -108,7 +107,7 @@ def list_keys(
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
             elif key_methods == "key":
-                typer.echo(f"{obj.key}")
+                typer.echo(f"{obj.load}")
             elif key_methods == "size":
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
@@ -153,7 +152,6 @@ def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
             res.result()
 
 
-# TODO Add requested permission as parameter
 @app.command()
 def change_permissions(
     args: List[str],
@@ -254,11 +252,16 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
 
 @app.command()
 def upload(
-    files: List[str] = typer.Argument(
-        ...,
-        help="Either a file or files, or a text file containing paths to files separated by commas (,)",
-    ),
     upload_path: str = typer.Argument(...),
+    files: List[str] = typer.Option(
+        None, "--files", "-f", help="Chose either a file or files with absolute path"
+    ),
+    upload_from_file: str = typer.Option(
+        None,
+        "--upload-from-file",
+        "-uff",
+        help="Upload using text file containing paths to files separated by commas (,)",
+    ),
     permissions: str = typer.Option(
         "public-read",
         help="Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
@@ -272,12 +275,23 @@ def upload(
     The last argument passed will be the upload path.
     Optionally, one can choose the amount of threads that should be used.
     """
-    file_type, _ = mimetypes.guess_type(files[0])
-    if len(files) == 1 and file_type == "text/plain":
-        with open(files[0], "r") as file_paths:
+
+    if files:
+        for file in files:
+            if Path(file).is_file() == False:
+                typer.echo("Your input is not a file!")
+                raise typer.Abort()
+
+    elif upload_from_file:
+        with open(upload_from_file, "r") as file_paths:
             paths = file_paths.read().strip()
             separated_paths = paths.split(",")
             files = [p.strip() for p in separated_paths]
+
+        for file in files:
+            if Path(file).is_file() == False:
+                typer.echo(f"{file} is not a file!")
+                raise typer.Abort()
 
     executor = ThreadPoolExecutor(max_workers=worker_threads)
     futures = [
@@ -330,15 +344,15 @@ def _downloader(file_key, download_path):
 
 @app.command()
 def download(
-    files: List[str] = typer.Argument(
+    download_path: str = typer.Argument(
         ...,
-        help="Either a file or files, or a text file containing paths to files separated by commas (,)",
-    ),
-    download_path: str = typer.Option(
-        None,
-        "--download-path",
-        "-dp",
         help="Sets download path. Will download in the folder where the command is executed if none is set",
+    ),
+    files: List[str] = typer.Option(
+        None,
+        "--files",
+        "-f",
+        help="Either a file or files, or a text file containing paths to files separated by commas (,)",
     ),
     threads: int = typer.Option(
         3, "--threads", "-t", help="Amount of threads used to download in parallel"
@@ -346,12 +360,9 @@ def download(
 ):
     """Downloads a key or series of keys"""
 
-    file_type, _ = mimetypes.guess_type(files[0])
-    if len(files) == 1 and file_type == "text/plain":
-        with open(files[0], "r") as file_paths:
-            paths = file_paths.read().strip()
-            separated_paths = paths.split(",")
-            files = [p.strip() for p in separated_paths]
+    if not files:
+        typer.echo("You must choose at least one file to download")
+        raise typer.Abort()
 
     executor = ThreadPoolExecutor(max_workers=threads)
     futures = [executor.submit(_downloader, vid, download_path) for vid in files]
@@ -374,10 +385,13 @@ def create_upload_list(
     at once
     """
 
+    files = [
+        i.path for i in os.scandir(files_path) if Path(i).suffix == f".{file_extension}"
+    ]
+
     with open(os.path.join(output_path, "upload.txt"), "w") as upload_list:
-        for i in os.scandir(files_path):
-            if Path(i).suffix == f".{file_extension}":
-                upload_list.write(f"{i.path}, ")
+        upload_list.write(", ".join(files))
+
     return
 
 

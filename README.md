@@ -105,12 +105,12 @@ Downloads a key or series of keys
 **Usage**:
 
 ```console
-$ s3-tool download [OPTIONS] FILES...
+$ s3-tool download [OPTIONS] DOWNLOAD_PATH
 ```
 
 **Options**:
 
-* `-dp, --download-path TEXT`: Sets download path. Will download in the folder where the command is executed if none is set
+* `-f, --files TEXT`: Either a file or files, or a text file containing paths to files separated by commas (,)
 * `-t, --threads INTEGER`: Amount of threads used to download in parallel
 * `--help`: Show this message and exit.
 
@@ -144,11 +144,13 @@ Optionally, one can choose the amount of threads that should be used.
 **Usage**:
 
 ```console
-$ s3-tool upload [OPTIONS] FILES... UPLOAD_PATH
+$ s3-tool upload [OPTIONS] UPLOAD_PATH
 ```
 
 **Options**:
 
+* `-f, --files TEXT`: Chose either a file or files with absolute path
+* `-uff, --upload-from-file TEXT`: Upload using text file containing paths to files separated by commas (,)
 * `--permissions TEXT`: Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'
 * `--worker-threads INTEGER`: Amount of threads used to upload in parallel
 * `--help`: Show this message and exit.
