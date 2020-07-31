@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "s3-tool"
-version = "0.2.2"
+version = "0.2.3"
 description = "S3 CLI Tool to execute basic commands"
 license = "MIT"
 authors = ["Ivan Andre Scheel <andrescheel@protonmail.com>"]

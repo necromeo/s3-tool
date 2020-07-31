@@ -107,7 +107,7 @@ def list_keys(
             if http_prefix:
                 typer.echo(f"{contar_http}{obj.key}")
             elif key_methods == "key":
-                typer.echo(f"{obj.load}")
+                typer.echo(f"{obj.key}")
             elif key_methods == "size":
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
