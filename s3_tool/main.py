@@ -131,10 +131,10 @@ def list_keys(
                 typer.echo(obj.key)
 
 
-def permission_changer(f, permissions: str):
+def permission_changer(f, permissions):
     # Could check the permissions to know if to change them or not
     try:
-        f.Acl().put(ACL=permissions)
+        f.Acl().put(ACL=permissions.value)
     except Exception as e:
         typer.echo(f"Error -> {e}", err=True)
 
@@ -143,13 +143,16 @@ def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _ = get_login()
     all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
+    progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
         results = [
             executor.submit(permission_changer, file, permissions) for file in all_files
         ]
 
         for res in results:
+            progbar.update()
             res.result()
+        progbar.close()
 
 
 @app.command()
@@ -171,7 +174,7 @@ def change_permissions(
         if not args:
             typer.echo("You must specify at least one S3 Key")
         id_list = [str(i) for i in args]
-        progbar = tqdm(total=len(id_list), desc=permissions, unit="permission")
+        progbar = tqdm(total=len(id_list), desc="Total", unit="permission")
 
         with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
             futures = [
@@ -247,6 +250,9 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
 
     mimetype, _ = mimetypes.guess_type(file_path)
 
+    if mimetype is None:
+        mimetype = ""
+
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
@@ -258,7 +264,9 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
 
 @app.command()
 def upload(
-    upload_path: str = typer.Argument(...),
+    upload_path: str = typer.Argument(
+        ..., help="Do not end this path with a slash '/'"
+    ),
     files: List[str] = typer.Option(
         None, "--files", "-f", help="Chose either a file or files with absolute path"
     ),
@@ -270,10 +278,12 @@ def upload(
     ),
     permissions: str = typer.Option(
         "public-read",
+        "--permissions",
+        "-perms",
         help="Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'",
     ),
-    worker_threads: int = typer.Option(
-        3, help="Amount of threads used to upload in parallel"
+    threads: int = typer.Option(
+        3, "--threads", "-t", help="Amount of threads used to upload in parallel"
     ),
 ):
     """
@@ -299,7 +309,7 @@ def upload(
                 typer.echo(f"{file} is not a file!")
                 raise typer.Abort()
 
-    executor = ThreadPoolExecutor(max_workers=worker_threads)
+    executor = ThreadPoolExecutor(max_workers=threads)
     futures = [
         executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
     ]
