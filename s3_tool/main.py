@@ -114,6 +114,9 @@ def list_keys(
                 typer.echo(f"{obj.last_modified}")
             elif key_methods == "owner":
                 typer.echo(f"{obj.owner}")
+            elif key_methods == "acl":
+                typer.echo(obj.Acl().grants)
+                # typer.echo(f"{obj.owner}")
 
     elif limit > 0:
         for obj in contents.objects.filter(
@@ -206,7 +209,9 @@ def _deleter(k: str, prompt):
 
 @app.command()
 def delete_key(
-    files: List[str],
+    files: List[str] = typer.Option(
+        None, "--files", "-f", help="Chose either a file or files with absolute path"
+    ),
     prompt: bool = typer.Option(True, help="Display a prompt to confirm deletion"),
     threads: int = typer.Option(
         1,

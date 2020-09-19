@@ -6,3 +6,4 @@ class ObjectMethods(str, Enum):
     last_modified = "last_modified"
     size = "size"
     owner = "owner"
+    acl = "acl"
