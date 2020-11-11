@@ -46,6 +46,7 @@ $ s3-tool [OPTIONS] COMMAND [ARGS]...
 - `delete-key`: USE WITH EXTREME CAUTION! Deletes a given key...
 - `download`: Downloads a key or series of keys
 - `list-keys`: Lists keys according to a given prefix
+- `list-keys-v2`: Lists keys using S3 client. Allows for using a delimiter to limit the output to "subfolders"
 - `upload`: Uploads a single file or multiple files.
 
 ## `s3-tool change-permissions`
@@ -135,6 +136,25 @@ $ s3-tool list-keys [OPTIONS]
 - `-l, --limit INTEGER`: Limits the amount of keys returned.
 - `-km, --key-methods [key|last_modified|size|owner]`
 - `--help`: Show this message and exit.
+
+## `s3-tool list-keys-v2`
+
+Lists keys using the S3 client rather than Resource (used for thelist-keys command). Allows the usage of a delimiter to limit the output to "subfolders". Only operation not possible is the checking of ACL Grants.
+
+**Usage**:
+
+```console
+$ s3-tool list-keys-v2 [OPTIONS]
+```
+
+**Options**:
+
+* `-p, --prefix TEXT`: Prefix to look for keys  [default: source/]
+* `-d, --delimiter TEXT`: A delimiter is a character you use to group keys.  [default: ]
+* ` --max-keys, -mk INTEGER`: Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.  [default: 1000]
+* `-hp, --http-prefix`: Append HTTP URL Prefix to keys  [default: False]
+* `-km, --key-methods [key|last_modified|size|owner]`
+* `--help`: Show this message and exit.
 
 ## `s3-tool upload`
 

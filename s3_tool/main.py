@@ -1,14 +1,17 @@
-import os, mimetypes
-import typer
-import boto3, botocore
+import mimetypes
+import os
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
 from pathlib import Path
-from tqdm import tqdm
+from typing import List
+
+import boto3
+import botocore
+import typer
 from dotenv import load_dotenv
+from tqdm import tqdm
+
 from s3_tool.choices.access_types import ACLTypes
 from s3_tool.choices.object_methods import ObjectMethods
-
 
 load_dotenv()
 
@@ -56,6 +59,13 @@ def get_login(
         config=botocore.config.Config(retries={"total_max_attempts": 3}),
     )
 
+    client = boto3.client(
+        "s3",
+        endpoint_url=os.getenv("ENDPOINT"),
+        aws_access_key_id=os.getenv("ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("SECRET_ACCESS_KEY"),
+    )
+
     login_data["bucket"] = bucket()
 
     # Bucket to be used
@@ -63,7 +73,7 @@ def get_login(
 
     contents = s3.Bucket(name=bucket_name)
 
-    return contents, s3, bucket_name
+    return contents, s3, bucket_name, client
 
 
 @app.command()
@@ -97,7 +107,7 @@ def list_keys(
     ),
 ):
     """Lists keys according to a given prefix"""
-    contents, _, _ = get_login()
+    contents, _, _, _ = get_login()
     contar_http = os.getenv("HTTP_PREFIX") or ""
 
     if all is False and limit == 0:
@@ -134,6 +144,63 @@ def list_keys(
                 typer.echo(obj.key)
 
 
+@app.command()
+def list_keys_v2(
+    prefix: str = typer.Option(
+        "source/", "--prefix", "-p", help="Prefix to look for keys"
+    ),
+    delimiter: str = typer.Option(
+        "",
+        "--delimiter",
+        "-d",
+        help="A delimiter is a character you use to group keys.",
+    ),
+    max_keys: int = typer.Option(
+        1000,
+        " --max-keys",
+        "-mk",
+        help="Sets the maximum number of keys returned in the response. The response might contain fewer keys but will never contain more.",
+    ),
+    http_prefix: bool = typer.Option(
+        False, "--http-prefix", "-hp", help="Append HTTP URL Prefix to keys"
+    ),
+    key_methods: ObjectMethods = typer.Option(
+        ObjectMethods.key, "--key-methods", "-km"
+    ),
+):
+    """
+    Lists keys using the S3 client rather than Resource (used for the
+    list-keys command). Allows the usage of a delimiter to limit the output
+    to "subfolders". Only operation not possible is the checking of ACL Grants.
+    """
+    _, _, bucket, client = get_login()
+    contar_http = os.getenv("HTTP_PREFIX") or ""
+
+    if delimiter != "":
+        result = client.list_objects(
+            Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
+        )
+        for o in result.get("CommonPrefixes"):
+            typer.echo(o.get("Prefix"))
+
+    elif http_prefix:
+        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
+        for x in result.get("Contents"):
+            typer.echo(f'{contar_http}{x.get("Key")}')
+    else:
+        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
+
+        for x in result.get("Contents"):
+            if key_methods == "key":
+                typer.echo(x.get("Key"))
+            elif key_methods == "size":
+                typer.echo(f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb")
+            elif key_methods == "last_modified":
+                typer.echo(x.get("LastModified"))
+            elif key_methods == "owner":
+                typer.echo(x.get("Owner"))
+
+
 def permission_changer(f, permissions):
     # Could check the permissions to know if to change them or not
     try:
@@ -143,7 +210,7 @@ def permission_changer(f, permissions):
 
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
-    contents, _, _ = get_login()
+    contents, _, _, _ = get_login()
     all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
@@ -193,7 +260,7 @@ def change_permissions(
 
 
 def _deleter(k: str, prompt):
-    _, s3, bucket_name = get_login()
+    _, s3, bucket_name, _ = get_login()
 
     if prompt:
         delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
@@ -240,7 +307,7 @@ def delete_key(
 
 
 def _upload_file(file_path: str, upload_path: str, upload_permission: str):
-    contents, _, _ = get_login()
+    contents, _, _, _ = get_login()
 
     file_name = Path(file_path).name
     key = f"{upload_path}/{file_name}"
@@ -324,7 +391,7 @@ def upload(
 
 def _downloader(file_key, download_path):
     try:
-        contents, _, _ = get_login()
+        contents, _, _, _ = get_login()
 
         if download_path is None:
             download_path = os.getcwd()
