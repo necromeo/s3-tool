@@ -309,6 +309,7 @@ def delete_key(
 def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     contents, _, _, _ = get_login()
 
+    new_file_path = Path(file_path)
     file_name = Path(file_path).name
     key = f"{upload_path}/{file_name}"
     video_size = os.path.getsize(file_path)
@@ -328,7 +329,10 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+        Filename=str(new_file_path),
+        Key=key,
+        Callback=upload_progress,
+        ExtraArgs=extra_args,
     )
 
     progbar.close()
@@ -377,10 +381,9 @@ def upload(
             files = [p.strip() for p in separated_paths]
 
         for file in files:
-            if Path(file).is_file() == False:
+            if not Path(file).is_file():
                 typer.echo(f"{file} is not a file!")
                 raise typer.Abort()
-
     executor = ThreadPoolExecutor(max_workers=threads)
     futures = [
         executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
@@ -478,7 +481,7 @@ def create_upload_list(
     files = [file for file in p.iterdir() if Path(file).suffix == f".{file_extension}"]
 
     with open(os.path.join(output_path, "upload.txt"), "a") as upload_list:
-        upload_list.write(",".join(f'"{file}"' for file in files))
+        upload_list.write(",".join(f"{file}" for file in files))
 
     return
 
