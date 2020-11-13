@@ -473,12 +473,12 @@ def create_upload_list(
     at once
     """
 
-    files = [
-        i.path for i in os.scandir(files_path) if Path(i).suffix == f".{file_extension}"
-    ]
+    p = Path(files_path)
 
-    with open(os.path.join(output_path, "upload.txt"), "w") as upload_list:
-        upload_list.write(", ".join(files))
+    files = [file for file in p.iterdir() if Path(file).suffix == f".{file_extension}"]
+
+    with open(os.path.join(output_path, "upload.txt"), "a") as upload_list:
+        upload_list.write(",".join(f'"{file}"' for file in files))
 
     return
 
