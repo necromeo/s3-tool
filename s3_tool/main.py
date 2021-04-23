@@ -1,5 +1,6 @@
 import mimetypes
 import os
+import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import List
@@ -478,7 +479,13 @@ def create_upload_list(
     files = [file for file in p.iterdir() if Path(file).suffix == f".{file_extension}"]
 
     with open(os.path.join(output_path, "upload.txt"), "a") as upload_list:
-        upload_list.write(",".join(f'"{file}"' for file in files))
+        if sys.platform.startswith("win32"):
+            upload_list.write(",".join(f"{file}" for file in files))
+        elif sys.platform.startswith("linux"):
+            upload_list.write(",".join(f'"{file}"' for file in files))
+        else:
+            typer.echo("OS not compatible")
+            typer.Abort()
 
     return
 
