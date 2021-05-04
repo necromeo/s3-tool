@@ -120,6 +120,7 @@ def list_keys(
             elif key_methods == "key":
                 typer.echo(f"{obj.key}")
             elif key_methods == "size":
+                # TODO add a kwarg to get total size
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
                 typer.echo(f"{obj.last_modified}")
@@ -195,6 +196,7 @@ def list_keys_v2(
             if key_methods == "key":
                 typer.echo(x.get("Key"))
             elif key_methods == "size":
+                # TODO add kwarg to summed total size
                 typer.echo(f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
                 typer.echo(x.get("LastModified"))
@@ -328,13 +330,21 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
 
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
-    contents.upload_file(
-        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
-    )
+    # TODO Better error message when this fails | Change for 0.3.2
+    try:
+        contents.upload_file(
+            Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+        )
+    except Exception as e:
+        progbar.close()
+        typer.secho(f"{e}", fg=typer.colors.RED, err=True)
 
     progbar.close()
 
 
+# TODO Add a default delimiter!
+# TODO don't allow to upload file that end with the default or chosen
+# delimiter
 @app.command()
 def upload(
     upload_path: str = typer.Argument(
@@ -382,12 +392,16 @@ def upload(
                 typer.echo(f"{file} is not a file!")
                 raise typer.Abort()
 
-    executor = ThreadPoolExecutor(max_workers=threads)
-    futures = [
-        executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
-    ]
-    for f in futures:
-        f.result()
+    try:
+        executor = ThreadPoolExecutor(max_workers=threads)
+        futures = [
+            executor.submit(_upload_file, vid, upload_path, permissions)
+            for vid in files
+        ]
+        for f in futures:
+            f.result()
+    except Exception as e:
+        typer.secho(f"{e}", fg=typer.colors.RED, err=True)
 
 
 def _downloader(file_key, download_path):
@@ -459,6 +473,7 @@ def download(
         f.result()
 
 
+# TODO Add option to append output to another file | Change for 0.3.3
 @app.command(name="create-upload-list")
 def create_upload_list(
     files_path: str = typer.Argument(...),
