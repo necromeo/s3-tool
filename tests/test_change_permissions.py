@@ -1,15 +1,15 @@
+import ast
 import os
 from datetime import datetime
 from unittest import mock
-import ast
+
 import pytest
 from moto import mock_s3
 
-from s3_tool.main import change_permissions, list_keys
 from s3_tool.choices import access_types
+from s3_tool.main import change_permissions, list_keys
 
 from .test_login_data import bucket_contents
-
 
 """
 Permissions are:

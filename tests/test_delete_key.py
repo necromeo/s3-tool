@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from moto import mock_s3
 
-from s3_tool.main import delete_key, _deleter
+from s3_tool.main import _deleter, delete_key
 
 from .test_login_data import bucket_contents
 

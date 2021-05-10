@@ -18,9 +18,7 @@ def env_variables():
     os.environ["HTTP_PREFIX"] = "https://http_prefix.com/"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_key(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -37,9 +35,7 @@ def test_list_keys_v2_key(mock_bucket, capsys):
     assert captured.out == "source/empty.txt\n"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_no_key(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -56,9 +52,7 @@ def test_list_keys_v2_no_key(mock_bucket, capsys):
     assert captured.out == "No key was found!\n"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_size(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -75,9 +69,7 @@ def test_list_keys_v2_size(mock_bucket, capsys):
     assert captured.out == "source/empty.txt -> 0.0Mb\n"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_last_modified(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -95,27 +87,19 @@ def test_list_keys_v2_last_modified(mock_bucket, capsys):
     assert type(captured_datetime) is datetime
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_http_prefix(mock_bucket, capsys, env_variables):
     mock_bucket.return_value = bucket_contents()
     list_keys_v2(
-        prefix="source/",
-        delimiter="",
-        max_keys=1,
-        http_prefix=True,
-        key_methods="key",
+        prefix="source/", delimiter="", max_keys=1, http_prefix=True, key_methods="key",
     )
     assert mock_bucket.called == True
     captured = capsys.readouterr()
     assert captured.out == "https://http_prefix.com/source/empty.txt\n"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_owner(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -135,9 +119,7 @@ def test_list_keys_v2_owner(mock_bucket, capsys):
     )
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login")
 @mock_s3
 def test_list_keys_v2_delimiter(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()

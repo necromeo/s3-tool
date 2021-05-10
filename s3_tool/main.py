@@ -1,8 +1,8 @@
 import mimetypes
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from sys import platform as os_platform
 from typing import List
 
 import boto3
@@ -13,7 +13,6 @@ from tqdm import tqdm
 
 from s3_tool.choices.access_types import ACLTypes
 from s3_tool.choices.object_methods import ObjectMethods
-
 
 load_dotenv()
 
@@ -227,12 +226,7 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [
-        obj
-        for obj in contents.objects.filter(
-            Prefix=str(video_ids),
-        )
-    ]
+    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -284,9 +278,7 @@ def _deleter(k: str, prompt):
     _, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(
-            f"Are you sure you want to delete -> {k}?",
-        )
+        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Abort()
@@ -355,10 +347,7 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=file_path,
-        Key=key,
-        Callback=upload_progress,
-        ExtraArgs=extra_args,
+        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
     )
 
     progbar.close()
@@ -508,10 +497,10 @@ def create_upload_list(
     files = [file for file in p.iterdir() if Path(file).suffix == f".{file_extension}"]
 
     with open(os.path.join(output_path, "upload.txt"), "a") as upload_list:
-        if sys.platform.startswith("win32"):
+        if os_platform == "win32":
             upload_list.write(",".join(f"{file}" for file in files))
-        elif sys.platform.startswith("linux"):
-            upload_list.write(",".join(f'"{file}"' for file in files))
+        elif os_platform == "linux":
+            upload_list.write(",".join(f"{file}" for file in files))
         else:
             typer.echo("OS not compatible")
             typer.Abort()
