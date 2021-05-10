@@ -14,6 +14,7 @@ from tqdm import tqdm
 from s3_tool.choices.access_types import ACLTypes
 from s3_tool.choices.object_methods import ObjectMethods
 
+
 load_dotenv()
 
 
@@ -24,7 +25,7 @@ def bucket(bucket=os.getenv("BUCKET_NAME")) -> str:
     bucket_name = {"bucket": bucket}
 
     if bucket_name["bucket"] == None:
-        bucket_name["bucket"] = input("Enter the name of your Bucket")
+        bucket_name["bucket"] = input("Enter the name of your Bucket: ")
 
     return bucket_name["bucket"]
 
@@ -119,6 +120,7 @@ def list_keys(
                 typer.echo(f"{contar_http}{obj.key}")
             elif key_methods == "key":
                 typer.echo(f"{obj.key}")
+                return obj.key
             elif key_methods == "size":
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
@@ -178,7 +180,7 @@ def list_keys_v2(
     contar_http = os.getenv("HTTP_PREFIX") or ""
 
     if delimiter != "":
-        result = client.list_objects(
+        result = client.list_objects_v2(
             Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
         )
         for o in result.get("CommonPrefixes"):
@@ -188,7 +190,8 @@ def list_keys_v2(
         result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
         for x in result.get("Contents"):
             typer.echo(f'{contar_http}{x.get("Key")}')
-    else:
+
+    elif key_methods != "owner":
         result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
 
         for x in result.get("Contents"):
@@ -198,8 +201,12 @@ def list_keys_v2(
                 typer.echo(f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
                 typer.echo(x.get("LastModified"))
-            elif key_methods == "owner":
-                typer.echo(x.get("Owner"))
+    else:
+        result = client.list_objects_v2(
+            Bucket=bucket, Prefix=prefix, MaxKeys=max_keys, FetchOwner=True
+        )
+        for x in result.get("Contents"):
+            typer.echo(x.get("Owner"))
 
 
 def permission_changer(f, permissions):
@@ -212,7 +219,12 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
+    all_files = [
+        obj
+        for obj in contents.objects.filter(
+            Prefix=str(video_ids),
+        )
+    ]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -264,7 +276,9 @@ def _deleter(k: str, prompt):
     _, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
+        delete_prompt = typer.confirm(
+            f"Are you sure you want to delete -> {k}?",
+        )
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Abort()
@@ -329,7 +343,10 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+        Filename=file_path,
+        Key=key,
+        Callback=upload_progress,
+        ExtraArgs=extra_args,
     )
 
     progbar.close()
