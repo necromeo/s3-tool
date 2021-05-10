@@ -178,35 +178,43 @@ def list_keys_v2(
     """
     _, _, bucket, client = get_login()
     contar_http = os.getenv("HTTP_PREFIX") or ""
+    try:
+        if delimiter != "":
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
+            )
+            for o in result.get("CommonPrefixes"):
+                typer.echo(o.get("Prefix"))
 
-    if delimiter != "":
-        result = client.list_objects_v2(
-            Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
-        )
-        for o in result.get("CommonPrefixes"):
-            typer.echo(o.get("Prefix"))
+        elif http_prefix:
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
+            )
+            for x in result.get("Contents"):
+                typer.echo(f'{contar_http}{x.get("Key")}')
 
-    elif http_prefix:
-        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
-        for x in result.get("Contents"):
-            typer.echo(f'{contar_http}{x.get("Key")}')
+        elif key_methods != "owner":
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
+            )
+            for x in result.get("Contents"):
+                if key_methods == "key":
+                    typer.echo(x.get("Key"))
+                elif key_methods == "size":
+                    typer.echo(
+                        f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb"
+                    )
+                elif key_methods == "last_modified":
+                    typer.echo(x.get("LastModified"))
 
-    elif key_methods != "owner":
-        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
-
-        for x in result.get("Contents"):
-            if key_methods == "key":
-                typer.echo(x.get("Key"))
-            elif key_methods == "size":
-                typer.echo(f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb")
-            elif key_methods == "last_modified":
-                typer.echo(x.get("LastModified"))
-    else:
-        result = client.list_objects_v2(
-            Bucket=bucket, Prefix=prefix, MaxKeys=max_keys, FetchOwner=True
-        )
-        for x in result.get("Contents"):
-            typer.echo(x.get("Owner"))
+        else:
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys, FetchOwner=True
+            )
+            for x in result.get("Contents"):
+                typer.echo(x.get("Owner"))
+    except Exception:
+        typer.echo("No key was found!")
 
 
 def permission_changer(f, permissions):
@@ -309,6 +317,10 @@ def delete_key(
         for f in files:
             if f[0] == "/":
                 typer.echo("DO NOT DELETE A KEY STARTING WITH /")
+                raise typer.Abort()
+        for f in files:
+            if f[-1] == "/":
+                typer.echo("DO NOT DELETE A KEY ENDING WITH /")
                 raise typer.Abort()
 
         keys = [f for f in files]

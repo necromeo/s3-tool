@@ -43,6 +43,27 @@ def test_list_keys_limit0_key(mock_bucket, capsys):
 @mock.patch(
     "s3_tool.main.get_login",
 )
+@mock_s3  # This MUST be explicitly called when mocking the s3 call!!!
+def test_list_keys_limit0_no_key(mock_bucket, capsys):
+    mock_bucket.return_value = bucket_contents()
+    list_keys(
+        limit=0,
+        prefix="nothing_here/",
+        delimiter="",
+        max_keys=1,
+        all=False,
+        http_prefix=False,
+        key_methods="key",
+    )
+
+    assert mock_bucket.called == True
+    captured = capsys.readouterr()
+    assert captured.out == ""
+
+
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_list_keys_limit0_size(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
