@@ -35,3 +35,6 @@ build-backend = "poetry.masonry.api"
 testpaths = [
     "tests",
 ]
+markers = [
+    "needs_input: marks tests as needing input. Run with -s or --capture=no. Enter 'y' first, then 'n' when prompted (deselect with '-m \"not needs_input\"')",
+]

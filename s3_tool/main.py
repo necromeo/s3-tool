@@ -226,12 +226,7 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [
-        obj
-        for obj in contents.objects.filter(
-            Prefix=str(video_ids),
-        )
-    ]
+    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -283,9 +278,7 @@ def _deleter(k: str, prompt):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(
-            f"Are you sure you want to delete -> {k}?",
-        )
+        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Exit()
@@ -361,10 +354,7 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=file_path,
-        Key=key,
-        Callback=upload_progress,
-        ExtraArgs=extra_args,
+        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
     )
 
     progbar.close()
