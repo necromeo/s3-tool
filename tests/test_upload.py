@@ -157,7 +157,6 @@ test_upload_from_file/file 9.txt
 
 def test_upload_is_not_file(tmp_path):
     with pytest.raises(Abort):
-        upload_file = create_upload_list_for_testing(tmp_path)
 
         upload(
             files=["None"],

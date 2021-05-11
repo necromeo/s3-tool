@@ -226,7 +226,12 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
+    all_files = [
+        obj
+        for obj in contents.objects.filter(
+            Prefix=str(video_ids),
+        )
+    ]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -275,18 +280,27 @@ def change_permissions(
 
 
 def _deleter(k: str, prompt):
-    _, s3, bucket_name, _ = get_login()
+    contents, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
+        delete_prompt = typer.confirm(
+            f"Are you sure you want to delete -> {k}?",
+        )
         if not delete_prompt:
             typer.echo("Got cold feet?")
-            raise typer.Abort()
+            raise typer.Exit()
 
-    s3.Object(bucket_name, k).delete()
-    message = "Deleted Key: "
-    deleted = typer.style(f"{k}", fg=typer.colors.RED)
-    typer.echo(message + deleted)
+    object_exists = list(contents.objects.filter(Prefix=k))
+
+    if any(object_exists) is False:
+        typer.echo(f"{k} does not exists!")
+        raise typer.Abort()
+
+    else:
+        s3.Object(bucket_name, k).delete()
+        message = "Deleted Key: "
+        deleted = typer.style(f"{k}", fg=typer.colors.RED)
+        typer.echo(message + deleted)
 
 
 @app.command()
@@ -301,28 +315,28 @@ def delete_key(
     ),
 ):
     """USE WITH EXTREME CAUTION! Deletes a given key or keys"""
-    try:
-        if not files:
-            typer.echo("No files provided")
+
+    if not files:
+        typer.echo("No files provided")
+        raise typer.Abort()
+
+    for f in files:
+        if f[0] == "/":
+            typer.echo("DO NOT DELETE A KEY STARTING WITH /")
+            raise typer.Abort()
+    for f in files:
+        if f[-1] == "/":
+            typer.echo("DO NOT DELETE A KEY ENDING WITH /")
             raise typer.Abort()
 
-        for f in files:
-            if f[0] == "/":
-                typer.echo("DO NOT DELETE A KEY STARTING WITH /")
-                raise typer.Abort()
-        for f in files:
-            if f[-1] == "/":
-                typer.echo("DO NOT DELETE A KEY ENDING WITH /")
-                raise typer.Abort()
-
-        keys = [f for f in files]
-        with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = [executor.submit(_deleter, k, prompt) for k in keys]
-            for f in futures:
-                f.result()
-
-    except Exception as e:
-        return e
+    # try:
+    keys = [f for f in files]
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = [executor.submit(_deleter, k, prompt) for k in keys]
+        for f in futures:
+            f.result()
+    # except Exception as e:
+    #     return e
 
 
 def _upload_file(file_path: str, upload_path: str, upload_permission: str):
@@ -347,7 +361,10 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     extra_args = {"ContentType": mimetype, "ACL": upload_permission}
 
     contents.upload_file(
-        Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+        Filename=file_path,
+        Key=key,
+        Callback=upload_progress,
+        ExtraArgs=extra_args,
     )
 
     progbar.close()

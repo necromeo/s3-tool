@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from unittest import mock
 
-import boto3
 import pytest
 from moto import mock_s3
 
@@ -20,7 +19,7 @@ def env_variables():
 
 
 @mock.patch("s3_tool.main.get_login")
-@mock_s3  # This MUST be explicitly called when mocking the s3 call!!!
+@mock_s3
 def test_list_keys_limit0_key(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
     list_keys(
@@ -39,7 +38,7 @@ def test_list_keys_limit0_key(mock_bucket, capsys):
 
 
 @mock.patch("s3_tool.main.get_login")
-@mock_s3  # This MUST be explicitly called when mocking the s3 call!!!
+@mock_s3
 def test_list_keys_limit0_no_key(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
     list_keys(

@@ -6,16 +6,22 @@ from unittest import mock
 from s3_tool.main import create_upload_list
 
 
-# TODO turn into fixture
-def test_create_upload_list(tmp_path):
+def create_files(tmp_path):
     d = tmp_path / "upload-files"
     d.mkdir()
     for i in range(10):
         p = d / f"file {i}.txt"
         p.write_text(f"{i}")
+    return d
+
+
+def test_create_upload_list(tmp_path):
+    d = create_files(tmp_path)
 
     create_upload_list(
-        files_path=d, file_extension="txt", output_path=d,
+        files_path=d,
+        file_extension="txt",
+        output_path=d,
     )
 
     upload_txt_path = Path(os.path.join(d, "upload.txt"))
@@ -31,18 +37,15 @@ def test_compatible_os():
 
 
 @mock.patch("s3_tool.main.os_platform")
-# @mock.patch("s3_tool.main._get_os")
 def test_incompatible_os(mock_sys, tmp_path, capsys):
     mock_sys.__str__.return_value = "darwin"
 
-    d = tmp_path / "upload-files"
-    d.mkdir()
-    for i in range(10):
-        p = d / f"file {i}.txt"
-        p.write_text(f"{i}")
+    d = create_files(tmp_path)
 
     create_upload_list(
-        files_path=d, file_extension="txt", output_path=d,
+        files_path=d,
+        file_extension="txt",
+        output_path=d,
     )
 
     captured = capsys.readouterr()

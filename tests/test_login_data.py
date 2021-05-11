@@ -15,7 +15,6 @@ def env_variables():
     os.environ["HTTP_PREFIX"] = "https://http_prefix.com/"
 
 
-# @pytest.fixture
 def test_getting_enviroment_variables(env_variables):
     assert os.getenv("ENDPOINT") == "endpoint"
     assert os.getenv("ACCESS_KEY") == "access_key"
