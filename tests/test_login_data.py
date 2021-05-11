@@ -52,17 +52,10 @@ def bucket_contents():
         Key="source/empty.txt", Body="Empty value", ACL="public-read"
     )
     conn.Bucket(bucket_name).put_object(
-        Key="delimiter/delimiter/empty.txt", Body="Delimiter", ACL="public-read"
+        Key="delimiter/delimiter/empty2.txt", Body="Delimiter", ACL="public-read"
     )
     contents = conn.Bucket(name=bucket_name)
 
     client = boto3.client("s3")
-    from pathlib import Path
-
-    # p = empty_file(Path.cwd())
-    # contents.upload_file(
-    #     Filename=str(p),
-    #     Key="source/empy2.txt",
-    # )
 
     return contents, conn, bucket_name, client

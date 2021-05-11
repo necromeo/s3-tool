@@ -1,12 +1,12 @@
 import os
+from pathlib import Path
 from unittest import mock
 
-import boto3
 import pytest
 from moto import mock_s3
-from pathlib import Path
+from typer import Abort
 
-from s3_tool.main import upload, list_keys, create_upload_list
+from s3_tool.main import create_upload_list, list_keys, upload
 
 from .test_login_data import bucket_contents
 
@@ -153,3 +153,16 @@ test_upload_from_file/file 8.txt
 test_upload_from_file/file 9.txt
 """
     assert captured.out == expected_output
+
+
+def test_upload_is_not_file(tmp_path):
+    with pytest.raises(Abort):
+        upload_file = create_upload_list_for_testing(tmp_path)
+
+        upload(
+            files=["None"],
+            upload_from_file=None,
+            upload_path="test_upload_from_file",
+            permissions="public-read",
+            threads=3,
+        )
