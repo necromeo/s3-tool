@@ -24,7 +24,17 @@ tqdm = "^4.47.0"
 mypy = "^0.782"
 black = "^19.10b0"
 pylint = "^2.5.3"
+pytest = "^6.2.4"
+moto = "^2.0.6"
 
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = [
+    "tests",
+]
+markers = [
+    "needs_input: marks tests as needing input. Run with -s or --capture=no. Enter 'y' first, then 'n' when prompted (deselect with '-m \"not needs_input\"')",
+]

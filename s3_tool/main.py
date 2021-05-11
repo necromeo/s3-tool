@@ -1,8 +1,8 @@
 import mimetypes
 import os
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from sys import platform as os_platform
 from typing import List
 
 import boto3
@@ -24,7 +24,7 @@ def bucket(bucket=os.getenv("BUCKET_NAME")) -> str:
     bucket_name = {"bucket": bucket}
 
     if bucket_name["bucket"] == None:
-        bucket_name["bucket"] = input("Enter the name of your Bucket")
+        bucket_name["bucket"] = input("Enter the name of your Bucket: ")
 
     return bucket_name["bucket"]
 
@@ -119,6 +119,7 @@ def list_keys(
                 typer.echo(f"{contar_http}{obj.key}")
             elif key_methods == "key":
                 typer.echo(f"{obj.key}")
+                return obj.key
             elif key_methods == "size":
                 # TODO add a kwarg to get total size
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
@@ -177,31 +178,43 @@ def list_keys_v2(
     """
     _, _, bucket, client = get_login()
     contar_http = os.getenv("HTTP_PREFIX") or ""
+    try:
+        if delimiter != "":
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
+            )
+            for o in result.get("CommonPrefixes"):
+                typer.echo(o.get("Prefix"))
 
-    if delimiter != "":
-        result = client.list_objects(
-            Bucket=bucket, Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
-        )
-        for o in result.get("CommonPrefixes"):
-            typer.echo(o.get("Prefix"))
+        elif http_prefix:
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
+            )
+            for x in result.get("Contents"):
+                typer.echo(f'{contar_http}{x.get("Key")}')
 
-    elif http_prefix:
-        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
-        for x in result.get("Contents"):
-            typer.echo(f'{contar_http}{x.get("Key")}')
-    else:
-        result = client.list_objects_v2(Bucket=bucket, Prefix=prefix, MaxKeys=max_keys)
+        elif key_methods != "owner":
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
+            )
+            for x in result.get("Contents"):
+                if key_methods == "key":
+                    typer.echo(x.get("Key"))
+                elif key_methods == "size":
+                    typer.echo(
+                        f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb"
+                    )
+                elif key_methods == "last_modified":
+                    typer.echo(x.get("LastModified"))
 
-        for x in result.get("Contents"):
-            if key_methods == "key":
-                typer.echo(x.get("Key"))
-            elif key_methods == "size":
-                # TODO add kwarg to summed total size
-                typer.echo(f"{x.get('Key')} -> {round(x.get('Size') / 1024 ** 2, 2)}Mb")
-            elif key_methods == "last_modified":
-                typer.echo(x.get("LastModified"))
-            elif key_methods == "owner":
+        else:
+            result = client.list_objects_v2(
+                Bucket=bucket, Prefix=prefix, MaxKeys=max_keys, FetchOwner=True
+            )
+            for x in result.get("Contents"):
                 typer.echo(x.get("Owner"))
+    except Exception:
+        typer.echo("No key was found!")
 
 
 def permission_changer(f, permissions):
@@ -263,18 +276,25 @@ def change_permissions(
 
 
 def _deleter(k: str, prompt):
-    _, s3, bucket_name, _ = get_login()
+    contents, s3, bucket_name, _ = get_login()
 
     if prompt:
         delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
         if not delete_prompt:
             typer.echo("Got cold feet?")
-            raise typer.Abort()
+            raise typer.Exit()
 
-    s3.Object(bucket_name, k).delete()
-    message = "Deleted Key: "
-    deleted = typer.style(f"{k}", fg=typer.colors.RED)
-    typer.echo(message + deleted)
+    object_exists = list(contents.objects.filter(Prefix=k))
+
+    if any(object_exists) is False:
+        typer.echo(f"{k} does not exists!")
+        raise typer.Abort()
+
+    else:
+        s3.Object(bucket_name, k).delete()
+        message = "Deleted Key: "
+        deleted = typer.style(f"{k}", fg=typer.colors.RED)
+        typer.echo(message + deleted)
 
 
 @app.command()
@@ -289,24 +309,28 @@ def delete_key(
     ),
 ):
     """USE WITH EXTREME CAUTION! Deletes a given key or keys"""
-    try:
-        if not files:
-            typer.echo("No files provided")
+
+    if not files:
+        typer.echo("No files provided")
+        raise typer.Abort()
+
+    for f in files:
+        if f[0] == "/":
+            typer.echo("DO NOT DELETE A KEY STARTING WITH /")
+            raise typer.Abort()
+    for f in files:
+        if f[-1] == "/":
+            typer.echo("DO NOT DELETE A KEY ENDING WITH /")
             raise typer.Abort()
 
-        for f in files:
-            if f[0] == "/":
-                typer.echo("DO NOT DELETE A KEY STARTING WITH /")
-                raise typer.Abort()
-
-        keys = [f for f in files]
-        with ThreadPoolExecutor(max_workers=threads) as executor:
-            futures = [executor.submit(_deleter, k, prompt) for k in keys]
-            for f in futures:
-                f.result()
-
-    except Exception as e:
-        return e
+    # try:
+    keys = [f for f in files]
+    with ThreadPoolExecutor(max_workers=threads) as executor:
+        futures = [executor.submit(_deleter, k, prompt) for k in keys]
+        for f in futures:
+            f.result()
+    # except Exception as e:
+    #     return e
 
 
 def _upload_file(file_path: str, upload_path: str, upload_permission: str):
@@ -494,10 +518,10 @@ def create_upload_list(
     files = [file for file in p.iterdir() if Path(file).suffix == f".{file_extension}"]
 
     with open(os.path.join(output_path, "upload.txt"), "a") as upload_list:
-        if sys.platform.startswith("win32"):
+        if os_platform == "win32":
             upload_list.write(",".join(f"{file}" for file in files))
-        elif sys.platform.startswith("linux"):
-            upload_list.write(",".join(f'"{file}"' for file in files))
+        elif os_platform == "linux":
+            upload_list.write(",".join(f"{file}" for file in files))
         else:
             typer.echo("OS not compatible")
             typer.Abort()
