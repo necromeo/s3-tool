@@ -119,7 +119,6 @@ def list_keys(
                 typer.echo(f"{contar_http}{obj.key}")
             elif key_methods == "key":
                 typer.echo(f"{obj.key}")
-                return obj.key
             elif key_methods == "size":
                 # TODO add a kwarg to get total size
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
