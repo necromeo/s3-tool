@@ -528,5 +528,62 @@ def create_upload_list(
     return
 
 
+@app.command("move-object")
+def move_object(
+    destination_path: str = typer.Argument(
+        ..., help="Destination path. Don't include the delimiter!"
+    ),
+    origin_files: List[str] = typer.Option(
+        None, "--files", "-f", help="Choose one or more objects you wish to move"
+    ),
+    permission: ACLTypes = typer.Option(
+        ACLTypes.public_read.value,
+        "--permissions",
+        "-p",
+        help="Changes the keys permissions",
+    ),
+    threads: int = typer.Option(3, "--threads", "-t"),
+):
+    _, s3, bucket_name, _ = get_login()
+
+    file_dict = {}
+
+    for f in origin_files:
+        splitted_file_name = f.split("/")
+
+        file_dict[f] = f"{destination_path}/{splitted_file_name[-1]}"
+
+    # print("file_dict -> ", file_dict)
+    try:
+        for orig, dest in file_dict.items():
+            # print(f"orig -> {orig}")
+            # print("dest -> ", dest)
+            # print("bucket_name -> ", bucket_name)
+
+            s3.Object(bucket_name, f"{dest}").copy_from(
+                CopySource={"Bucket": bucket_name, "Key": orig}, ACL=permission.value,
+            )
+    except Exception as e:
+        if (
+            str(e)
+            == "An error occurred (404) when calling the CopyObject operation: Not Found"
+        ):
+            print("Origin object not found!")
+            return
+        else:
+            print("An error occurred!")
+            return
+
+    # TODO Make multithreaded
+    # executor = ThreadPoolExecutor(max_workers=threads)
+    # futures = [
+    #     executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
+    # ]
+    # for f in futures:
+    #     f.result()
+
+    # TODO Delete origin_file
+
+
 if __name__ == "__main__":
     app()

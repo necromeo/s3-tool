@@ -30,9 +30,7 @@ def env_variables():
     os.environ["HTTP_PREFIX"] = "https://http_prefix.com/"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_public_read_write(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -59,9 +57,7 @@ def test_change_permissions_public_read_write(mock_bucket, capsys):
     assert "<Element " in captured.out
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_public_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -91,9 +87,7 @@ def test_change_permissions_public_read(mock_bucket, capsys):
     assert captured_dict[1].get("Permission") == "READ"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_private(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -127,9 +121,7 @@ def test_change_permissions_private(mock_bucket, capsys):
     # )
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_authenticated_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -160,9 +152,7 @@ def test_change_permissions_authenticated_read(mock_bucket, capsys):
     )
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_aws_exec_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -191,9 +181,7 @@ def test_change_permissions_aws_exec_read(mock_bucket, capsys):
     assert captured_dict[0].get("Permission") == "FULL_CONTROL"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_bucket_owner_full_control(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -222,9 +210,7 @@ def test_change_permissions_bucket_owner_full_control(mock_bucket, capsys):
     assert captured_dict[0].get("Permission") == "FULL_CONTROL"
 
 
-@mock.patch(
-    "s3_tool.main.get_login",
-)
+@mock.patch("s3_tool.main.get_login",)
 @mock_s3
 def test_change_permissions_bucket_owner_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()

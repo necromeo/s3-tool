@@ -1,8 +1,9 @@
 import os
-import pytest
 from unittest import mock
-from typer import Exit, Abort
+
+import pytest
 from moto import mock_s3
+from typer import Abort, Exit
 
 from s3_tool.main import delete_key
 
