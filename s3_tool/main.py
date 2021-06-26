@@ -536,16 +536,21 @@ def move_object(
         ..., help="Destination path. Don't include the delimiter!"
     ),
     origin_files: List[str] = typer.Option(
-        None, "--files", "-f", help="Choose one or more objects you wish to move"
+        None, "--files", "-f", help="Choose one or more objects you wish to move."
     ),
     permission: ACLTypes = typer.Option(
         ACLTypes.public_read.value,
         "--permissions",
         "-p",
-        help="Changes the keys permissions",
+        help="Sets the permission for the copied object.",
     ),
-    threads: int = typer.Option(3, "--threads", "-t"),
+    threads: int = typer.Option(
+        3, "--threads", "-t", help="Amount of threads used to upload in parallel."
+    ),
 ):
+    """
+    Moves objects from one location to another within the same bucket.
+    """
     _, s3, bucket_name, client = get_login()
 
     if destination_path[-1] == "/":
