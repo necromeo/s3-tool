@@ -274,7 +274,7 @@ def change_permissions(
         typer.echo(e)
 
 
-def _deleter(k: str, prompt):
+def _deleter(k: str, prompt, feedback: bool = True):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
@@ -291,9 +291,11 @@ def _deleter(k: str, prompt):
 
     else:
         s3.Object(bucket_name, k).delete()
-        message = "Deleted Key: "
-        deleted = typer.style(f"{k}", fg=typer.colors.RED)
-        typer.echo(message + deleted)
+        if feedback:
+            message = "Deleted Key: "
+            deleted = typer.style(f"{k}", fg=typer.colors.RED)
+            typer.echo(message + deleted)
+        return
 
 
 @app.command()
@@ -546,6 +548,10 @@ def move_object(
 ):
     _, s3, bucket_name, _ = get_login()
 
+    if destination_path[-1] == "/":
+        typer.echo("Destination path should not end with '/'")
+        raise typer.Exit()
+
     file_dict = {}
 
     for f in origin_files:
@@ -553,36 +559,43 @@ def move_object(
 
         file_dict[f] = f"{destination_path}/{splitted_file_name[-1]}"
 
-    # print("file_dict -> ", file_dict)
     try:
-        for orig, dest in file_dict.items():
-            # print(f"orig -> {orig}")
-            # print("dest -> ", dest)
-            # print("bucket_name -> ", bucket_name)
+        executor = ThreadPoolExecutor(max_workers=threads)
+        futures = [
+            executor.submit(_move_obj, permission, s3, bucket_name, orig, dest)
+            for orig, dest in file_dict.items()
+        ]
+        for f in futures:
+            f.result()
 
-            s3.Object(bucket_name, f"{dest}").copy_from(
-                CopySource={"Bucket": bucket_name, "Key": orig}, ACL=permission.value,
-            )
     except Exception as e:
         if (
             str(e)
             == "An error occurred (404) when calling the CopyObject operation: Not Found"
         ):
-            print("Origin object not found!")
-            return
+            typer.echo("Origin object not found!")
+            raise typer.Exit()
         else:
-            print("An error occurred!")
-            return
+            typer.echo("An error occurred!")
+            raise typer.Exit()
 
-    # TODO Make multithreaded
-    # executor = ThreadPoolExecutor(max_workers=threads)
-    # futures = [
-    #     executor.submit(_upload_file, vid, upload_path, permissions) for vid in files
-    # ]
-    # for f in futures:
-    #     f.result()
+    try:
+        # Delete origin_file
+        executor = ThreadPoolExecutor(max_workers=threads)
+        futures = [
+            executor.submit(_deleter, k, False, feedback=False) for k in origin_files
+        ]
+        for f in futures:
+            f.result()
 
-    # TODO Delete origin_file
+    except Exception as e:
+        raise typer.Exit()
+
+
+def _move_obj(permission, s3, bucket_name, orig, dest):
+    s3.Object(bucket_name, f"{dest}").copy_from(
+        CopySource={"Bucket": bucket_name, "Key": orig}, ACL=permission.value,
+    )
 
 
 if __name__ == "__main__":
