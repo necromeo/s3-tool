@@ -546,7 +546,7 @@ def move_object(
     ),
     threads: int = typer.Option(3, "--threads", "-t"),
 ):
-    _, s3, bucket_name, _ = get_login()
+    _, s3, bucket_name, client = get_login()
 
     if destination_path[-1] == "/":
         typer.echo("Destination path should not end with '/'")
@@ -562,7 +562,7 @@ def move_object(
     try:
         executor = ThreadPoolExecutor(max_workers=threads)
         futures = [
-            executor.submit(_move_obj, permission, s3, bucket_name, orig, dest)
+            executor.submit(_move_obj, permission, s3, client, bucket_name, orig, dest)
             for orig, dest in file_dict.items()
         ]
         for f in futures:
@@ -576,7 +576,9 @@ def move_object(
             typer.echo("Origin object not found!")
             raise typer.Exit()
         else:
-            typer.echo("An error occurred!")
+            typer.echo(
+                "An error occurred! Please check if the origin object path is correct"
+            )
             raise typer.Exit()
 
     try:
@@ -592,9 +594,27 @@ def move_object(
         raise typer.Exit()
 
 
-def _move_obj(permission, s3, bucket_name, orig, dest):
-    s3.Object(bucket_name, f"{dest}").copy_from(
-        CopySource={"Bucket": bucket_name, "Key": orig}, ACL=permission.value,
+def _move_obj(permission, s3, client, bucket_name, orig, dest):
+    obj_name = orig.split("/")[-1]
+
+    response = client.get_object(Bucket=bucket_name, Key=orig)
+    obj_size = response.get("ContentLength")
+    content_type = response.get("ContentType")
+
+    progbar = tqdm(
+        total=obj_size, unit="B", unit_scale=True, unit_divisor=1024, desc=obj_name
+    )
+
+    def upload_progress(chunk):
+        progbar.update(chunk)
+
+    copy_source = {"Bucket": bucket_name, "Key": orig}
+    bucket = s3.Bucket(bucket_name)
+    bucket.copy(
+        copy_source,
+        dest,
+        Callback=upload_progress,
+        ExtraArgs={"ContentType": content_type, "ACL": permission.value},
     )
 
 
