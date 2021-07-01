@@ -199,8 +199,35 @@ def test_move_and_rename_one_object(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    print(captured.out)
     assert captured.out == "source/new_empty.txt\n"
+
+
+@mock.patch("s3_tool.main.get_login")
+@mock_s3
+def test_move_and_rename_one_object_many_sublevels(mock_bucket, capsys):
+    mock_bucket.return_value = bucket_contents()
+
+    move_object(
+        origin_files=["delimiter/delimiter/empty2.txt"],
+        destination_path="",  # destination_path should be overriden when renaming
+        rename="new_empty.txt",
+        threads=1,
+        permission=access_types.ACLTypes.public_read,
+    )
+
+    list_keys(
+        limit=0,
+        prefix="delimiter/",
+        delimiter="",
+        max_keys=1,
+        all=False,
+        http_prefix=False,
+        key_methods=object_methods.ObjectMethods.key,
+    )
+
+    assert mock_bucket.called == True
+    captured = capsys.readouterr()
+    assert captured.out == "delimiter/delimiter/new_empty.txt\n"
 
 
 @mock.patch("s3_tool.main.get_login")

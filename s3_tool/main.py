@@ -226,7 +226,12 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
+    all_files = [
+        obj
+        for obj in contents.objects.filter(
+            Prefix=str(video_ids),
+        )
+    ]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -278,7 +283,9 @@ def _deleter(k: str, prompt: bool = True, feedback: bool = True):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
+        delete_prompt = typer.confirm(
+            f"Are you sure you want to delete -> {k}?",
+        )
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Exit()
@@ -358,7 +365,10 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     # TODO Better error message when this fails | Change for 0.3.2
     try:
         contents.upload_file(
-            Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+            Filename=file_path,
+            Key=key,
+            Callback=upload_progress,
+            ExtraArgs=extra_args,
         )
     except Exception as e:
         progbar.close()
@@ -577,9 +587,7 @@ def move_object(
             typer.echo("Can only rename one object at a time.")
             raise typer.Exit()
 
-        original_obj = origin_files[0]
-        origin_files[0] = rename
-
+        original_obj = list(origin_files)[0]
         conserve_dest: Union[List, str] = original_obj.split("/")[:-1]
 
         if len(conserve_dest) == 0:
@@ -589,7 +597,7 @@ def move_object(
             conserve_dest = original_obj
             dest = rename
         else:
-            dest = f"{conserve_dest[0]}/{rename}"
+            dest = f'{"/".join(conserve_dest)}/{rename}'
 
         _move_obj(permission, s3, client, bucket_name, original_obj, dest, rename=True)
         _deleter(original_obj, prompt=False, feedback=False)
@@ -658,6 +666,8 @@ def _move_obj(permission, s3, client, bucket_name, orig, dest, rename: bool = Fa
         Callback=upload_progress,
         ExtraArgs={"ContentType": content_type, "ACL": permission.value},
     )
+
+    return
 
 
 if __name__ == "__main__":
