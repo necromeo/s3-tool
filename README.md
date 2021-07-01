@@ -175,3 +175,21 @@ $ s3-tool upload [OPTIONS] UPLOAD_PATH
 - `--permissions TEXT`: Sets the permission for the uploaded file. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'
 - `--worker-threads INTEGER`: Amount of threads used to upload in parallel.
 - `--help`: Show this message and exit.
+
+## `s3-tool move-object`
+
+    Moves objects from one location to another within the same bucket.
+
+**Usage**:
+
+```console
+$ s3-tool move-object [OPTIONS] DESTINATION_PATH
+```
+
+**Options**:
+
+- `-f, --files TEXT`: Choose one or more objects you wish to move.
+- `--permissions TEXT`: Sets the permission for the copied object. Options are: 'private' | 'public-read' | 'public-read-write' | 'authenticated-read' | 'aws-exec-read' | 'bucket-owner-read' | 'bucket-owner-full-control'
+- `-rn, --rename TEXT`: Choose new object name. Destination path will have no effect but has to be input just the same.
+- `--threads INTEGER`: Amount of threads used to upload in parallel.
+- `--help`: Show this message and exit.
