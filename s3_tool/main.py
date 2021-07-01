@@ -554,6 +554,11 @@ def move_object(
         3, "--threads", "-t", help="Amount of threads used to upload in parallel."
     ),
 ):
+    """
+    Moves objects from one location to another within the same bucket.
+    Also allow renaming an existing object.
+    """
+
     _, s3, bucket_name, client = get_login()
 
     if destination_path == "" and not rename:
