@@ -46,6 +46,12 @@ def bucket_contents():
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     conn.create_bucket(Bucket=bucket_name)
     conn.Bucket(bucket_name).put_object(
+        Key="empty.txt",
+        Body="Empty value",
+        ACL="public-read",
+        ContentType="text/plain",
+    )
+    conn.Bucket(bucket_name).put_object(
         Key="source/empty.txt",
         Body="Empty value",
         ACL="public-read",

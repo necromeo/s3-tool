@@ -3,7 +3,7 @@ import os
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from sys import platform as os_platform
-from typing import List
+from typing import List, Union
 
 import boto3
 import botocore
@@ -274,7 +274,7 @@ def change_permissions(
         typer.echo(e)
 
 
-def _deleter(k: str, prompt, feedback: bool = True):
+def _deleter(k: str, prompt: bool = True, feedback: bool = True):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
@@ -533,10 +533,16 @@ def create_upload_list(
 @app.command("move-object")
 def move_object(
     destination_path: str = typer.Argument(
-        ..., help="Destination path. Don't include the delimiter!"
+        "", help="Destination path. Don't include the delimiter!"
     ),
     origin_files: List[str] = typer.Option(
         None, "--files", "-f", help="Choose one or more objects you wish to move."
+    ),
+    rename: Union[str, None] = typer.Option(
+        None,
+        "--rename",
+        "-rn",
+        help="Choose new object name. Destination path will have no effect but has to be input just the same.",
     ),
     permission: ACLTypes = typer.Option(
         ACLTypes.public_read.value,
@@ -548,16 +554,42 @@ def move_object(
         3, "--threads", "-t", help="Amount of threads used to upload in parallel."
     ),
 ):
-    """
-    Moves objects from one location to another within the same bucket.
-    """
     _, s3, bucket_name, client = get_login()
 
-    if destination_path[-1] == "/":
+    if destination_path == "" and not rename:
+        typer.echo("Destination path cannot be empty!")
+        raise typer.Exit()
+
+    if destination_path != "" and destination_path[-1] == "/":
         typer.echo("Destination path should not end with '/'")
         raise typer.Exit()
 
     file_dict = {}
+
+    if rename:
+        root = False
+        if len(origin_files) > 1:
+            typer.echo("Can only rename one object at a time.")
+            raise typer.Exit()
+
+        original_obj = origin_files[0]
+        origin_files[0] = rename
+
+        conserve_dest: Union[List, str] = original_obj.split("/")[:-1]
+
+        if len(conserve_dest) == 0:
+            root = True
+
+        if root:
+            conserve_dest = original_obj
+            dest = rename
+        else:
+            dest = f"{conserve_dest[0]}/{rename}"
+
+        _move_obj(permission, s3, client, bucket_name, original_obj, dest, rename=True)
+        _deleter(original_obj, prompt=False, feedback=False)
+
+        return
 
     for f in origin_files:
         splitted_file_name = f.split("/")
@@ -599,7 +631,7 @@ def move_object(
         raise typer.Exit()
 
 
-def _move_obj(permission, s3, client, bucket_name, orig, dest):
+def _move_obj(permission, s3, client, bucket_name, orig, dest, rename: bool = False):
     obj_name = orig.split("/")[-1]
 
     response = client.get_object(Bucket=bucket_name, Key=orig)
