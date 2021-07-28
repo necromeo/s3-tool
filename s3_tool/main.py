@@ -439,12 +439,9 @@ def upload(
         typer.secho(f"{e}", fg=typer.colors.RED, err=True)
 
 
-def _downloader(file_key, download_path):
+def _downloader(file_key, download_path, recursive: bool = False):
     try:
         contents, _, _, _ = get_login()
-
-        if download_path is None:
-            download_path = os.getcwd()
 
         file = contents.Object(file_key)
 
@@ -452,6 +449,9 @@ def _downloader(file_key, download_path):
         file.load()
 
         filename = os.path.basename(file_key)
+        file_path = file.key.split("/")
+        recursive_subdirs = os.sep.join(file_path[:-1])
+        download_path_with_subdirs = os.path.join(download_path, recursive_subdirs)
 
         progbar = tqdm(
             total=file.content_length,
@@ -464,9 +464,16 @@ def _downloader(file_key, download_path):
         def download_progress(chunk):
             progbar.update(chunk)
 
+        download_dest = os.path.join(download_path, f"{filename}")
+
+        if recursive:
+            if not os.path.exists(download_path_with_subdirs):
+                os.makedirs(download_path_with_subdirs, exist_ok=True)
+            download_dest = os.path.join(download_path_with_subdirs, f"{filename}")
+
         contents.download_file(
             file.key,
-            os.path.join(download_path, f"{filename}"),
+            download_dest,
             Callback=download_progress,
         )
 
@@ -486,11 +493,17 @@ def download(
         ...,
         help="Sets download path. Will download in the folder where the command is executed if none is set",
     ),
-    files: List[str] = typer.Option(
+    files: Union[List[str], None] = typer.Option(
         None,
         "--files",
         "-f",
         help="Either a file or files, or a text file containing paths to files separated by commas (,)",
+    ),
+    recursive: Union[str, None] = typer.Option(
+        None,
+        "--recursive",
+        "-r",
+        help="Recursively downloads a objects after a / delimiter.",
     ),
     threads: int = typer.Option(
         3, "--threads", "-t", help="Amount of threads used to download in parallel"
@@ -498,12 +511,33 @@ def download(
 ):
     """Downloads a key or series of keys"""
 
-    if not files:
+    if download_path is None:
+        download_path = os.getcwd()
+
+    if not files and not recursive:
         typer.echo("You must choose at least one file to download")
         raise typer.Abort()
 
+    if recursive:
+        if not recursive.endswith("/"):
+            typer.echo("Please add the delimiter / at the end.")
+            raise typer.Exit(code=1)
+
+        contents, _, _, _ = get_login()
+        files = [obj.key for obj in contents.objects.filter(Prefix=recursive)]
+
     executor = ThreadPoolExecutor(max_workers=threads)
-    futures = [executor.submit(_downloader, vid, download_path) for vid in files]
+
+    if recursive:
+        futures = []
+        futures = [
+            executor.submit(_downloader, vid, download_path, recursive=True)
+            for vid in files
+        ]
+
+    else:
+        futures = [executor.submit(_downloader, vid, download_path) for vid in files]
+
     for f in futures:
         f.result()
 

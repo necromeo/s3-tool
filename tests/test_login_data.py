@@ -41,7 +41,9 @@ def empty_file(tmp_path):
 def bucket_contents():
 
     # Resource with bucket
-    conn = boto3.resource("s3",)
+    conn = boto3.resource(
+        "s3",
+    )
     bucket_name = "testing_bucket"
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     conn.create_bucket(Bucket=bucket_name)
@@ -60,6 +62,24 @@ def bucket_contents():
     conn.Bucket(bucket_name).put_object(
         Key="delimiter/delimiter/empty2.txt",
         Body="Delimiter",
+        ACL="public-read",
+        ContentType="text/plain",
+    )
+    conn.Bucket(bucket_name).put_object(
+        Key="source/empty2.txt",
+        Body="empty2",
+        ACL="public-read",
+        ContentType="text/plain",
+    )
+    conn.Bucket(bucket_name).put_object(
+        Key="source/subdir/empty3.txt",
+        Body="empty3",
+        ACL="public-read",
+        ContentType="text/plain",
+    )
+    conn.Bucket(bucket_name).put_object(
+        Key="source/subdir/empty4.txt",
+        Body="empty4",
         ACL="public-read",
         ContentType="text/plain",
     )
