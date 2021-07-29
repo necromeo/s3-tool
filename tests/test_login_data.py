@@ -41,9 +41,7 @@ def empty_file(tmp_path):
 def bucket_contents():
 
     # Resource with bucket
-    conn = boto3.resource(
-        "s3",
-    )
+    conn = boto3.resource("s3",)
     bucket_name = "testing_bucket"
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     conn.create_bucket(Bucket=bucket_name)
@@ -83,6 +81,14 @@ def bucket_contents():
         ACL="public-read",
         ContentType="text/plain",
     )
+
+    conn.Bucket(bucket_name).put_object(
+        Key="listkeys/empty.txt",
+        Body="Empty value",
+        ACL="public-read",
+        ContentType="text/plain",
+    )
+
     contents = conn.Bucket(name=bucket_name)
 
     client = boto3.client("s3")

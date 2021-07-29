@@ -188,7 +188,7 @@ def test_move_and_rename_one_object(mock_bucket, capsys):
     )
 
     list_keys(
-        limit=0,
+        limit=1,
         prefix="source/",
         delimiter="",
         max_keys=1,
@@ -199,7 +199,7 @@ def test_move_and_rename_one_object(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert captured.out == "source/new_empty.txt\n"
+    assert captured.out == "source/empty2.txt\n"
 
 
 @mock.patch("s3_tool.main.get_login")

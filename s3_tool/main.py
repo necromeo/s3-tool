@@ -226,12 +226,7 @@ def permission_changer(f, permissions):
 
 def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
     contents, _, _, _ = get_login()
-    all_files = [
-        obj
-        for obj in contents.objects.filter(
-            Prefix=str(video_ids),
-        )
-    ]
+    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -283,9 +278,7 @@ def _deleter(k: str, prompt: bool = True, feedback: bool = True):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(
-            f"Are you sure you want to delete -> {k}?",
-        )
+        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Exit()
@@ -365,10 +358,7 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     # TODO Better error message when this fails | Change for 0.3.2
     try:
         contents.upload_file(
-            Filename=file_path,
-            Key=key,
-            Callback=upload_progress,
-            ExtraArgs=extra_args,
+            Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
         )
     except Exception as e:
         progbar.close()
@@ -472,9 +462,7 @@ def _downloader(file_key, download_path, recursive: bool = False):
             download_dest = os.path.join(download_path_with_subdirs, f"{filename}")
 
         contents.download_file(
-            file.key,
-            download_dest,
-            Callback=download_progress,
+            file.key, download_dest, Callback=download_progress,
         )
 
         progbar.close()
@@ -490,7 +478,8 @@ def _downloader(file_key, download_path, recursive: bool = False):
 @app.command()
 def download(
     download_path: str = typer.Argument(
-        ...,
+        # ...,
+        None,
         help="Sets download path. Will download in the folder where the command is executed if none is set",
     ),
     files: Union[List[str], None] = typer.Option(

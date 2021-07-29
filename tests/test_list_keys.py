@@ -24,7 +24,7 @@ def test_list_keys_limit0_key(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -34,7 +34,7 @@ def test_list_keys_limit0_key(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert captured.out == "source/empty.txt\n"
+    assert captured.out == "listkeys/empty.txt\n"
 
 
 @mock.patch("s3_tool.main.get_login")
@@ -63,7 +63,7 @@ def test_list_keys_limit0_size(mock_bucket, capsys):
 
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -73,7 +73,7 @@ def test_list_keys_limit0_size(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert captured.out == "source/empty.txt -> 0.0Mb\n"
+    assert captured.out == "listkeys/empty.txt -> 0.0Mb\n"
 
 
 @mock.patch("s3_tool.main.get_login")
@@ -84,7 +84,7 @@ def test_list_keys_limit0_last_modified(mock_bucket, capsys):
 
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -105,7 +105,7 @@ def test_list_keys_limit0_owner(mock_bucket, capsys):
 
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -128,7 +128,7 @@ def test_list_keys_limit0_acl(mock_bucket, capsys):
 
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -152,7 +152,7 @@ def test_list_keys_limit0_http_prefix(mock_bucket, capsys):
 
     list_keys(
         limit=0,
-        prefix="source/",
+        prefix="listkeys/",
         delimiter="",
         max_keys=1,
         all=False,
@@ -161,7 +161,7 @@ def test_list_keys_limit0_http_prefix(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert captured.out == "https://http_prefix.com/source/empty.txt\n"
+    assert captured.out == "https://http_prefix.com/listkeys/empty.txt\n"
 
 
 @mock.patch("s3_tool.main.get_login")
@@ -179,9 +179,11 @@ def test_list_keys_limit0_all(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert (
-        captured.out == "delimiter/delimiter/empty2.txt\nempty.txt\nsource/empty.txt\n"
-    )
+
+    objects = captured.out.split("\n")
+
+    assert objects[0] == "delimiter/delimiter/empty2.txt"
+    assert objects[-2] == "source/subdir/empty4.txt"  # objects[-1] == ""
 
 
 @mock.patch("s3_tool.main.get_login")
@@ -196,10 +198,9 @@ def test_list_keys_limit0_all_http_prefix(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    assert (
-        captured.out
-        == "https://http_prefix.com/delimiter/delimiter/empty2.txt\nhttps://http_prefix.com/empty.txt\nhttps://http_prefix.com/source/empty.txt\n"
-    )
+    objects = captured.out.split("\n")
+    assert len(objects) == 8
+    assert objects[0] == "https://http_prefix.com/delimiter/delimiter/empty2.txt"
 
 
 @mock.patch("s3_tool.main.get_login")
