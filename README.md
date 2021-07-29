@@ -113,6 +113,7 @@ $ s3-tool download [OPTIONS] DOWNLOAD_PATH
 **Options**:
 
 - `-f, --files TEXT`: Either a file or files, or a text file containing paths to files separated by commas (,).
+- `-r, --recursive TEXT`: Recursively downloads a objects after a / delimiter.
 - `-t, --threads INTEGER`: Amount of threads used to download in parallel.
 - `--help`: Show this message and exit.
 
