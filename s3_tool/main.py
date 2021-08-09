@@ -126,7 +126,7 @@ def list_keys(
                 # TODO add a kwarg to get total size
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
-                typer.echo(f"{obj.last_modified}")
+                typer.echo(f"{obj.key} -> {obj.last_modified}")
             elif key_methods == "owner":
                 typer.echo(f"{obj.owner}")
             elif key_methods == "acl":

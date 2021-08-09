@@ -87,7 +87,8 @@ def test_list_keys_limit0_last_modified(mock_bucket, capsys):
 
     assert mock_bucket.called == True
     captured = capsys.readouterr()
-    captured_datetime = datetime.fromisoformat(captured.out.strip())
+    assert captured.out.strip()[:-29] == "listkeys/empty.txt"
+    captured_datetime = datetime.fromisoformat(captured.out.strip()[22:])
     assert type(captured_datetime) is datetime
 
 
