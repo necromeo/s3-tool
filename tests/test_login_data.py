@@ -9,14 +9,14 @@ from s3_tool.main import bucket
 
 @pytest.fixture
 def env_variables():
-    os.environ["ENDPOINT"] = "endpoint"
+    os.environ["ENDPOINT"] = "https://s3.endpoint.com/"
     os.environ["ACCESS_KEY"] = "access_key"
     os.environ["SECRET_ACCESS_KEY"] = "aws_secret_access_key"
     os.environ["HTTP_PREFIX"] = "https://http_prefix.com/"
 
 
 def test_getting_enviroment_variables(env_variables):
-    assert os.getenv("ENDPOINT") == "endpoint"
+    assert os.getenv("ENDPOINT") == "https://s3.endpoint.com/"
     assert os.getenv("ACCESS_KEY") == "access_key"
     assert os.getenv("SECRET_ACCESS_KEY") == "aws_secret_access_key"
     assert os.getenv("HTTP_PREFIX") == "https://http_prefix.com/"
@@ -41,7 +41,9 @@ def empty_file(tmp_path):
 def bucket_contents():
 
     # Resource with bucket
-    conn = boto3.resource("s3",)
+    conn = boto3.resource(
+        "s3",
+    )
     bucket_name = "testing_bucket"
     # We need to create the bucket since this is all in Moto's 'virtual' AWS account
     conn.create_bucket(Bucket=bucket_name)
