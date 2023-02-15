@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "s3-tool"
-version = "0.3.4"
+version = "0.3.5"
 description = "S3 CLI Tool to execute basic commands"
 license = "MIT"
 authors = ["Ivan Andre Scheel <andrescheel@protonmail.com>"]
@@ -13,7 +13,7 @@ exclude = [".env", "test.py"]
 s3-tool = "s3_tool.main:app"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.10"
 typer = {extras = ["all"], version = "^0.3.0"}
 python-dotenv = "^0.14.0"
 boto3 = "^1.14.20"
