@@ -32,7 +32,7 @@ def test_move_one_object(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     print(captured.out)
     assert captured.out == "source2/empty.txt\n"
@@ -76,7 +76,7 @@ def test_move_one_object_in_root(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     print(captured.out)
     assert captured.out == "source2/empty.txt\n"
@@ -97,7 +97,7 @@ def test_fail_move_non_existing_object(mock_bucket):
             threads=1,
         )
 
-        assert mock_bucket.called == True
+        assert mock_bucket.called is True
 
 
 @mock.patch("s3_tool.main.get_login")
@@ -123,7 +123,7 @@ def test_move_two_objects(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
 
     assert captured.out == "source2/empty.txt\nsource2/empty2.txt\n"
@@ -142,7 +142,7 @@ def test_fail_on_destination_path_with_delimiter(mock_bucket, capsys):
             threads=1,
         )
 
-        assert mock_bucket.called == True
+        assert mock_bucket.called is True
         captured = capsys.readouterr()
 
         assert captured.out == "Destination path should not end with '/'\n"
@@ -169,7 +169,7 @@ def test_delete_origin_object(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "No key was found!\n"
 
@@ -197,7 +197,7 @@ def test_move_and_rename_one_object(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "source/empty2.txt\n"
 
@@ -225,7 +225,7 @@ def test_move_and_rename_one_object_many_sublevels(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "delimiter/delimiter/new_empty.txt\n"
 
@@ -253,7 +253,7 @@ def test_move_and_rename_object_in_root(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     print(captured.out)
     assert captured.out == "new_empty.txt\n"

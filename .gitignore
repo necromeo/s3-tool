@@ -1,6 +1,8 @@
 .env
+.coverage
 .mypy_cache/
 .vscode/
 __pycache__/
 *.pyc
 dist/
+htmlcov/

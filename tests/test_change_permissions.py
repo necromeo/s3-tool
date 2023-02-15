@@ -5,7 +5,7 @@ from unittest import mock
 import pytest
 from moto import mock_s3
 
-from s3_tool.choices import access_types
+from s3_tool.choices import access_types, object_methods
 from s3_tool.main import change_permissions, list_keys
 
 from .test_login_data import bucket_contents
@@ -30,7 +30,9 @@ def env_variables():
     os.environ["HTTP_PREFIX"] = "https://http_prefix.com/"
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_public_read_write(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -49,15 +51,17 @@ def test_change_permissions_public_read_write(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert "<Element " in captured.out
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_public_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -76,10 +80,10 @@ def test_change_permissions_public_read(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert len(captured_dict) == 2
@@ -87,7 +91,9 @@ def test_change_permissions_public_read(mock_bucket, capsys):
     assert captured_dict[1].get("Permission") == "READ"
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_private(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -106,10 +112,10 @@ def test_change_permissions_private(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert len(captured_dict) == 1
@@ -121,7 +127,9 @@ def test_change_permissions_private(mock_bucket, capsys):
     # )
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_authenticated_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -140,10 +148,10 @@ def test_change_permissions_authenticated_read(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert (
@@ -152,7 +160,9 @@ def test_change_permissions_authenticated_read(mock_bucket, capsys):
     )
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_aws_exec_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -171,17 +181,19 @@ def test_change_permissions_aws_exec_read(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"
     assert captured_dict[0].get("Permission") == "FULL_CONTROL"
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_bucket_owner_full_control(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -200,17 +212,19 @@ def test_change_permissions_bucket_owner_full_control(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"
     assert captured_dict[0].get("Permission") == "FULL_CONTROL"
 
 
-@mock.patch("s3_tool.main.get_login",)
+@mock.patch(
+    "s3_tool.main.get_login",
+)
 @mock_s3
 def test_change_permissions_bucket_owner_read(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
@@ -229,10 +243,10 @@ def test_change_permissions_bucket_owner_read(mock_bucket, capsys):
         max_keys=1,
         all=False,
         http_prefix=False,
-        key_methods="acl",
+        key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"

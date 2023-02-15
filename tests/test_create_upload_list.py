@@ -25,7 +25,7 @@ def test_create_upload_list(tmp_path):
     )
 
     upload_txt_path = Path(os.path.join(d, "upload.txt"))
-    assert upload_txt_path.exists() == True
+    assert upload_txt_path.exists() is True
 
     for i in upload_txt_path.read_text().split(","):
         assert Path(i).exists()

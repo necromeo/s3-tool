@@ -23,7 +23,7 @@ app = typer.Typer(help="S3 CLI Tool to execute basic commands")
 def bucket(bucket=os.getenv("BUCKET_NAME")) -> str:
     bucket_name = {"bucket": bucket}
 
-    if bucket_name["bucket"] == None:
+    if not bucket_name.get("bucket"):
         bucket_name["bucket"] = input("Enter the name of your Bucket: ")
 
     return bucket_name["bucket"]
@@ -42,11 +42,11 @@ def get_login(
         "aws_secret_access_key": aws_secret_access_key,
     }
 
-    if login_data["endpoint_url"] == None:
+    if not login_data.get("endpoint_url"):
         login_data["endpoint_url"] = input("Enter endpoint URL: ")
-    if login_data["aws_access_key_id"] == None:
+    if login_data.get("aws_access_key_id"):
         login_data["aws_access_key_id"] = input("Enter your AWS Access Key: ")
-    if login_data["aws_secret_access_key"] == None:
+    if login_data.get("aws_secret_access_key"):
         login_data["aws_secret_access_key"] = input(
             "Enter your AWS Secret Access Key: "
         )
@@ -57,7 +57,7 @@ def get_login(
         aws_access_key_id=login_data["aws_access_key_id"],
         aws_secret_access_key=login_data["aws_secret_access_key"],
         use_ssl=True,
-        config=botocore.config.Config(retries={"total_max_attempts": 3}),
+        config=botocore.config.Config(retries={"total_max_attempts": 3}),  # type: ignore
     )
 
     client = boto3.client(
@@ -108,22 +108,25 @@ def list_keys(
     ),
 ):
     """Lists keys according to a given prefix"""
-    contents, _, _, _ = get_login()
-    contar_http = os.getenv("HTTP_PREFIX") or ""
+    contents, _, bucket_name, _ = get_login()
+
+    endpoint = os.getenv("ENDPOINT")
+    if str(os.getenv("ENDPOINT")).endswith("/"):
+        endpoint = str(os.getenv("ENDPOINT"))[:-1]
 
     if all is False and limit == 0:
         for obj in contents.objects.filter(
             Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
         ):
             if http_prefix:
-                typer.echo(f"{contar_http}{obj.key}")
+                typer.echo(f"{endpoint}/{bucket_name}/{obj.key}")
             elif key_methods == "key":
                 typer.echo(f"{obj.key}")
             elif key_methods == "size":
                 # TODO add a kwarg to get total size
                 typer.echo(f"{obj.key} -> {round(obj.size / 1024 ** 2, 2)}Mb")
             elif key_methods == "last_modified":
-                typer.echo(f"{obj.last_modified}")
+                typer.echo(f"{obj.key} -> {obj.last_modified}")
             elif key_methods == "owner":
                 typer.echo(f"{obj.owner}")
             elif key_methods == "acl":
@@ -135,13 +138,14 @@ def list_keys(
             Prefix=prefix, Delimiter=delimiter, MaxKeys=max_keys
         ).limit(count=limit):
             if http_prefix:
-                typer.echo(f"{contar_http}{obj.key}")
+                typer.echo(f"{endpoint}/{bucket_name}/{obj.key}")
             else:
                 typer.echo(obj.key)
     else:
         for obj in contents.objects.all():
             if http_prefix:
-                typer.echo(f"{contar_http}{obj.key}")
+                typer.echo(f"{endpoint}/{bucket_name}/{obj.key}")
+
             else:
                 typer.echo(obj.key)
 
@@ -176,7 +180,11 @@ def list_keys_v2(
     to "subfolders". Only operation not possible is the checking of ACL Grants.
     """
     _, _, bucket, client = get_login()
-    contar_http = os.getenv("HTTP_PREFIX") or ""
+
+    endpoint = os.getenv("ENDPOINT")
+    if str(os.getenv("ENDPOINT")).endswith("/"):
+        endpoint = str(os.getenv("ENDPOINT"))[:-1]
+
     try:
         if delimiter != "":
             result = client.list_objects_v2(
@@ -190,7 +198,7 @@ def list_keys_v2(
                 Bucket=bucket, Prefix=prefix, MaxKeys=max_keys
             )
             for x in result.get("Contents"):
-                typer.echo(f'{contar_http}{x.get("Key")}')
+                typer.echo(f'{endpoint}/{bucket}/{x.get("Key")}')
 
         elif key_methods != "owner":
             result = client.list_objects_v2(
@@ -216,17 +224,23 @@ def list_keys_v2(
         typer.echo("No key was found!")
 
 
-def permission_changer(f, permissions):
+def permission_changer(f, permissions: ACLTypes):
     # Could check the permissions to know if to change them or not
     try:
         f.Acl().put(ACL=permissions.value)
     except Exception as e:
         typer.echo(f"Error -> {e}", err=True)
+        raise typer.Exit(code=1)
 
 
-def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
+def file_gatherer(video_ids: str, changer_threads: int, permissions: ACLTypes):
     contents, _, _, _ = get_login()
-    all_files = [obj for obj in contents.objects.filter(Prefix=str(video_ids),)]
+    all_files = [
+        obj
+        for obj in contents.objects.filter(
+            Prefix=str(video_ids),
+        )
+    ]
 
     progbar = tqdm(total=len(all_files), desc="files", unit="S3 files")
     with ThreadPoolExecutor(max_workers=changer_threads) as executor:
@@ -255,30 +269,33 @@ def change_permissions(
     ),
 ):
     """Takes any number of keys and changes their permissions to public-read"""
-    try:
-        if not args:
-            typer.echo("You must specify at least one S3 Key")
-        id_list = [str(i) for i in args]
-        progbar = tqdm(total=len(id_list), desc="Total", unit="permission")
+    # try:
+    if not args:
+        typer.echo("You must specify at least one S3 Key")
+    id_list = [str(i) for i in args]
+    progbar = tqdm(total=len(id_list), desc="Total", unit="permission")
 
-        with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
-            futures = [
-                executor.submit(file_gatherer, vid_id, changer_threads, permissions)
-                for vid_id in id_list
-            ]
-            for f in futures:
-                progbar.update()
-                f.result()
-            progbar.close()
-    except Exception as e:
-        typer.echo(e)
+    with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
+        futures = [
+            executor.submit(file_gatherer, vid_id, changer_threads, permissions)
+            for vid_id in id_list
+        ]
+        for f in futures:
+            progbar.update()
+            f.result()
+        progbar.close()
+    # except Exception as e:
+    #     typer.echo(e)
+    #     raise typer.Exit(code=1)
 
 
 def _deleter(k: str, prompt: bool = True, feedback: bool = True):
     contents, s3, bucket_name, _ = get_login()
 
     if prompt:
-        delete_prompt = typer.confirm(f"Are you sure you want to delete -> {k}?",)
+        delete_prompt = typer.confirm(
+            f"Are you sure you want to delete -> {k}?",
+        )
         if not delete_prompt:
             typer.echo("Got cold feet?")
             raise typer.Exit()
@@ -328,8 +345,8 @@ def delete_key(
     keys = [f for f in files]
     with ThreadPoolExecutor(max_workers=threads) as executor:
         futures = [executor.submit(_deleter, k, prompt) for k in keys]
-        for f in futures:
-            f.result()
+        for f in futures:  # type: ignore
+            f.result()  # type: ignore
     # except Exception as e:
     #     return e
 
@@ -358,7 +375,10 @@ def _upload_file(file_path: str, upload_path: str, upload_permission: str):
     # TODO Better error message when this fails | Change for 0.3.2
     try:
         contents.upload_file(
-            Filename=file_path, Key=key, Callback=upload_progress, ExtraArgs=extra_args,
+            Filename=file_path,
+            Key=key,
+            Callback=upload_progress,
+            ExtraArgs=extra_args,
         )
     except Exception as e:
         progbar.close()
@@ -402,7 +422,7 @@ def upload(
 
     if files:
         for file in files:
-            if Path(file).is_file() == False:
+            if not Path(file).is_file():
                 typer.echo("Your input is not a file!")
                 raise typer.Abort()
 
@@ -413,7 +433,7 @@ def upload(
             files = [p.strip() for p in separated_paths]
 
         for file in files:
-            if Path(file).is_file() == False:
+            if not Path(file).is_file():
                 typer.echo(f"{file} is not a file!")
                 raise typer.Abort()
 
@@ -462,7 +482,9 @@ def _downloader(file_key, download_path, recursive: bool = False):
             download_dest = os.path.join(download_path_with_subdirs, f"{filename}")
 
         contents.download_file(
-            file.key, download_dest, Callback=download_progress,
+            file.key,
+            download_dest,
+            Callback=download_progress,
         )
 
         progbar.close()
@@ -499,6 +521,7 @@ def download(
     ),
 ):
     """Downloads a key or series of keys"""
+    executor = ThreadPoolExecutor(max_workers=threads)
 
     if download_path is None:
         download_path = os.getcwd()
@@ -515,17 +538,13 @@ def download(
         contents, _, _, _ = get_login()
         files = [obj.key for obj in contents.objects.filter(Prefix=recursive)]
 
-    executor = ThreadPoolExecutor(max_workers=threads)
-
-    if recursive:
-        futures = []
         futures = [
             executor.submit(_downloader, vid, download_path, recursive=True)
             for vid in files
         ]
 
     else:
-        futures = [executor.submit(_downloader, vid, download_path) for vid in files]
+        futures = [executor.submit(_downloader, vid, download_path) for vid in files]  # type: ignore
 
     for f in futures:
         f.result()
@@ -638,8 +657,8 @@ def move_object(
             executor.submit(_move_obj, permission, s3, client, bucket_name, orig, dest)
             for orig, dest in file_dict.items()
         ]
-        for f in futures:
-            f.result()
+        for f in futures:  # type: ignore
+            f.result()  # type: ignore
 
     except Exception as e:
         if (
@@ -647,23 +666,22 @@ def move_object(
             == "An error occurred (404) when calling the CopyObject operation: Not Found"
         ):
             typer.echo("Origin object not found!")
-            raise typer.Exit()
         else:
             typer.echo(
                 "An error occurred! Please check if the origin object path is correct"
             )
-            raise typer.Exit()
 
+        raise typer.Exit()
     try:
         # Delete origin_file
         executor = ThreadPoolExecutor(max_workers=threads)
         futures = [
             executor.submit(_deleter, k, False, feedback=False) for k in origin_files
         ]
-        for f in futures:
-            f.result()
+        for f in futures:  # type: ignore
+            f.result()  # type: ignore
 
-    except Exception as e:
+    except Exception:
         raise typer.Exit()
 
 
