@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from unittest import mock
 
-import pytest
 from moto import mock_s3
 
 from s3_tool.main import list_keys_v2
@@ -23,7 +22,7 @@ def test_list_keys_v2_key(mock_bucket, capsys):
         key_methods=ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "source/empty.txt\n"
 
@@ -40,7 +39,7 @@ def test_list_keys_v2_no_key(mock_bucket, capsys):
         key_methods=ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "No key was found!\n"
 
@@ -57,7 +56,7 @@ def test_list_keys_v2_size(mock_bucket, capsys):
         key_methods=ObjectMethods.size,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "source/empty.txt -> 0.0Mb\n"
 
@@ -74,7 +73,7 @@ def test_list_keys_v2_last_modified(mock_bucket, capsys):
         key_methods=ObjectMethods.last_modified,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_datetime = datetime.fromisoformat(captured.out.strip())
     assert type(captured_datetime) is datetime
@@ -92,7 +91,7 @@ def test_list_keys_v2_http_prefix(mock_bucket, capsys, env_variables):
         http_prefix=True,
         key_methods=ObjectMethods.key,
     )
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == f"{prefix}testing_bucket/source/empty.txt\n"
 
@@ -109,7 +108,7 @@ def test_list_keys_v2_owner(mock_bucket, capsys):
         key_methods=ObjectMethods.owner,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert (
         captured.out
@@ -129,6 +128,6 @@ def test_list_keys_v2_delimiter(mock_bucket, capsys):
         key_methods=ObjectMethods.key,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "delimiter/delimiter/\n"

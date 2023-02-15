@@ -1,9 +1,8 @@
-import os
 from unittest import mock
 
 import pytest
 from moto import mock_s3
-from typer import Abort, Exit
+from typer import Abort
 
 from s3_tool.main import delete_key
 
@@ -24,7 +23,7 @@ def test_delete_key_one_file_no_prompt(mock_bucket, capsys):
     mock_bucket.return_value = bucket_contents()
     delete_key(files=["source/empty.txt"], prompt=False, threads=1)
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert captured.out == "Deleted Key: source/empty.txt\n"
 
@@ -67,7 +66,7 @@ def test_delete_multiple_keys_no_prompt(mock_bucket, capsys):
         threads=1,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert (
         captured.out

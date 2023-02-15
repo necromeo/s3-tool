@@ -23,7 +23,7 @@ app = typer.Typer(help="S3 CLI Tool to execute basic commands")
 def bucket(bucket=os.getenv("BUCKET_NAME")) -> str:
     bucket_name = {"bucket": bucket}
 
-    if bucket_name["bucket"] == None:
+    if not bucket_name.get("bucket"):
         bucket_name["bucket"] = input("Enter the name of your Bucket: ")
 
     return bucket_name["bucket"]
@@ -42,11 +42,11 @@ def get_login(
         "aws_secret_access_key": aws_secret_access_key,
     }
 
-    if login_data["endpoint_url"] == None:
+    if not login_data.get("endpoint_url"):
         login_data["endpoint_url"] = input("Enter endpoint URL: ")
-    if login_data["aws_access_key_id"] == None:
+    if login_data.get("aws_access_key_id"):
         login_data["aws_access_key_id"] = input("Enter your AWS Access Key: ")
-    if login_data["aws_secret_access_key"] == None:
+    if login_data.get("aws_secret_access_key"):
         login_data["aws_secret_access_key"] = input(
             "Enter your AWS Secret Access Key: "
         )
@@ -224,15 +224,16 @@ def list_keys_v2(
         typer.echo("No key was found!")
 
 
-def permission_changer(f, permissions):
+def permission_changer(f, permissions: ACLTypes):
     # Could check the permissions to know if to change them or not
     try:
         f.Acl().put(ACL=permissions.value)
     except Exception as e:
         typer.echo(f"Error -> {e}", err=True)
+        raise typer.Exit(code=1)
 
 
-def file_gatherer(video_ids: str, changer_threads: int, permissions: str):
+def file_gatherer(video_ids: str, changer_threads: int, permissions: ACLTypes):
     contents, _, _, _ = get_login()
     all_files = [
         obj
@@ -268,23 +269,24 @@ def change_permissions(
     ),
 ):
     """Takes any number of keys and changes their permissions to public-read"""
-    try:
-        if not args:
-            typer.echo("You must specify at least one S3 Key")
-        id_list = [str(i) for i in args]
-        progbar = tqdm(total=len(id_list), desc="Total", unit="permission")
+    # try:
+    if not args:
+        typer.echo("You must specify at least one S3 Key")
+    id_list = [str(i) for i in args]
+    progbar = tqdm(total=len(id_list), desc="Total", unit="permission")
 
-        with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
-            futures = [
-                executor.submit(file_gatherer, vid_id, changer_threads, permissions)
-                for vid_id in id_list
-            ]
-            for f in futures:
-                progbar.update()
-                f.result()
-            progbar.close()
-    except Exception as e:
-        typer.echo(e)
+    with ThreadPoolExecutor(max_workers=prefix_threads) as executor:
+        futures = [
+            executor.submit(file_gatherer, vid_id, changer_threads, permissions)
+            for vid_id in id_list
+        ]
+        for f in futures:
+            progbar.update()
+            f.result()
+        progbar.close()
+    # except Exception as e:
+    #     typer.echo(e)
+    #     raise typer.Exit(code=1)
 
 
 def _deleter(k: str, prompt: bool = True, feedback: bool = True):
@@ -420,7 +422,7 @@ def upload(
 
     if files:
         for file in files:
-            if Path(file).is_file() == False:
+            if not Path(file).is_file():
                 typer.echo("Your input is not a file!")
                 raise typer.Abort()
 
@@ -431,7 +433,7 @@ def upload(
             files = [p.strip() for p in separated_paths]
 
         for file in files:
-            if Path(file).is_file() == False:
+            if not Path(file).is_file():
                 typer.echo(f"{file} is not a file!")
                 raise typer.Abort()
 
@@ -679,7 +681,7 @@ def move_object(
         for f in futures:  # type: ignore
             f.result()  # type: ignore
 
-    except Exception as e:
+    except Exception:
         raise typer.Exit()
 
 

@@ -24,7 +24,7 @@ def create_files(tmp_path, multiple=False):
         return file_list
 
     else:
-        p = d / f"test_upload_file.txt"
+        p = d / "test_upload_file.txt"
         p.write_text("Empty bodied file")
         return str(p)
 

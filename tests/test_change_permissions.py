@@ -54,7 +54,7 @@ def test_change_permissions_public_read_write(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     assert "<Element " in captured.out
 
@@ -83,7 +83,7 @@ def test_change_permissions_public_read(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert len(captured_dict) == 2
@@ -115,7 +115,7 @@ def test_change_permissions_private(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert len(captured_dict) == 1
@@ -151,7 +151,7 @@ def test_change_permissions_authenticated_read(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert (
@@ -184,7 +184,7 @@ def test_change_permissions_aws_exec_read(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"
@@ -215,7 +215,7 @@ def test_change_permissions_bucket_owner_full_control(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"
@@ -246,7 +246,7 @@ def test_change_permissions_bucket_owner_read(mock_bucket, capsys):
         key_methods=object_methods.ObjectMethods.acl,
     )
 
-    assert mock_bucket.called == True
+    assert mock_bucket.called is True
     captured = capsys.readouterr()
     captured_dict = ast.literal_eval(captured.out)
     assert captured_dict[0].get("Grantee").get("Type") == "CanonicalUser"
